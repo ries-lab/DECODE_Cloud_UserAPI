@@ -85,7 +85,10 @@ class JobCreate(JobBase):
 
 
 class Job(JobBase, JobReadBase):
-    user_id: int
+    user_id: str
+
+    class Config:
+        orm_mode = True
 
 
 class MetaSpecs(BaseModel):

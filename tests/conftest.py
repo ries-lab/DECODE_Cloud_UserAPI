@@ -10,6 +10,7 @@ from api.main import app
 from api.dependencies import current_user_dep, CognitoClaims
 from api.database import get_db, Base
 
+
 root_file1_name = 'dfile.txt'
 root_file2_name = 'cfile.txt'
 subdir_name = 'test_dir/'
@@ -20,7 +21,7 @@ subdir_file1_contents = 'subdir file contents'
 
 test_username = "test_user"
 
-testing_database = "sqlite:///./test.db"
+test_db = "sqlite:///./test_app.db"
 
 
 @pytest.fixture(scope="session")
@@ -47,7 +48,7 @@ def require_auth(monkeypatch):
 def db():
     # Override DB
     engine = create_engine(
-        testing_database, connect_args={"check_same_thread": False}
+        test_db, connect_args={"check_same_thread": False}
     )
     make_testing_session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     Base.metadata.create_all(bind=engine)
