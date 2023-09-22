@@ -1,9 +1,17 @@
 import copy
 import pytest
 from fastapi.testclient import TestClient
-from tests.conftest import jobs, foreign_job, data_files, config_files, \
-    example_app, example_attrs, \
-    monkeypatch_module, test_username, env
+from tests.conftest import (
+    jobs,
+    foreign_job,
+    data_files,
+    config_files,
+    example_app,
+    example_attrs,
+    monkeypatch_module,
+    test_username,
+    env,
+)
 from unittest.mock import MagicMock
 from api.queue import get_enqueueing_function
 from api.main import app
@@ -18,7 +26,11 @@ endpoint = "/jobs"
 @pytest.fixture(scope="function")
 def enqueuing_func(monkeypatch_module):
     mock_enqueueing_function = MagicMock()
-    monkeypatch_module.setitem(app.dependency_overrides,  get_enqueueing_function, lambda: mock_enqueueing_function)
+    monkeypatch_module.setitem(
+        app.dependency_overrides,
+        get_enqueueing_function,
+        lambda: mock_enqueueing_function,
+    )
     return mock_enqueueing_function
 
 
@@ -62,7 +74,9 @@ def test_start_job(env, enqueuing_func, data_files, config_files):
     assert response.json()["job_name"] == job_name
     enqueuing_func.assert_called_once()
     database = api.database.SessionLocal()
-    assert database.query(Job).filter(Job.job_name == job_name).first().status == "queued"
+    assert (
+        database.query(Job).filter(Job.job_name == job_name).first().status == "queued"
+    )
 
 
 def test_start_job_wrong_files(enqueuing_func, data_files, config_files):

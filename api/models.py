@@ -34,11 +34,15 @@ class Job(Base):
     date_created = Column(DateTime, default=datetime.datetime.utcnow)
     date_started = Column(DateTime)
     date_finished = Column(DateTime)
-    status = Column(String, Enum(JobStates), nullable=False, default=JobStates.queued.value)
+    status = Column(
+        String, Enum(JobStates), nullable=False, default=JobStates.queued.value
+    )
     environment = Column(Enum(EnvironmentTypes))
     priority = Column(Integer, nullable=False, default=0)
     application = Column(JSON, nullable=False)
     attributes = Column(JSON, nullable=False)
     hardware = Column(JSON, nullable=True)
 
-    __table_args__ = (UniqueConstraint("user_id", "job_name", name="_user_job_name_unique"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "job_name", name="_user_job_name_unique"),
+    )

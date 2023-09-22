@@ -1,5 +1,7 @@
 import dotenv
+
 dotenv.load_dotenv()
+
 from fastapi import FastAPI
 
 from api import settings

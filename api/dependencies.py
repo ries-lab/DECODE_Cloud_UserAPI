@@ -3,16 +3,18 @@ from fastapi import Request, Depends, Header, HTTPException
 from fastapi_cloudauth.cognito import CognitoCurrentUser, CognitoClaims
 
 from api.core.filesystem import get_user_filesystem
-from api.settings import cognito_client_id, cognito_region, cognito_user_pool_id, internal_api_key_secret
+from api.settings import cognito_client_id, cognito_region, cognito_user_pool_id
+from api.settings import internal_api_key_secret
+
 
 current_user_dep = CognitoCurrentUser(
-    region=cognito_region,
-    userPoolId=cognito_user_pool_id,
-    client_id=cognito_client_id
+    region=cognito_region, userPoolId=cognito_user_pool_id, client_id=cognito_client_id
 )
 
 
-async def current_user_global_dep(request: Request, current_user: CognitoClaims = Depends(current_user_dep)):
+async def current_user_global_dep(
+    request: Request, current_user: CognitoClaims = Depends(current_user_dep)
+):
     request.state.current_user = current_user
     return current_user
 

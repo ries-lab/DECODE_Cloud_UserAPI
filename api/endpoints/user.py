@@ -17,7 +17,7 @@ def get_user(current_user: CognitoClaims = Depends(current_user_dep)):
 
 @router.post("/user", response_model=User)
 def register_user(user: UserCreate):
-    client = boto3.client('cognito-idp')
+    client = boto3.client("cognito-idp")
 
     try:
         # Perform the signup using the email and password
@@ -25,7 +25,7 @@ def register_user(user: UserCreate):
             UserPoolId=cognito_user_pool_id,
             Username=user.email,
             TemporaryPassword=user.password,
-            MessageAction='SUPPRESS',
+            MessageAction="SUPPRESS",
         )
 
         # Reset password to change state
@@ -33,17 +33,21 @@ def register_user(user: UserCreate):
             UserPoolId=cognito_user_pool_id,
             Username=user.email,
             Password=user.password,
-            Permanent=True
+            Permanent=True,
         )
         filesystem = get_user_filesystem(response["User"]["Username"])
         filesystem.init()
     except client.exceptions.ClientError as e:
-        if e.response['Error']['Code'] == 'UsernameExistsException':
+        if e.response["Error"]["Code"] == "UsernameExistsException":
             raise HTTPException(status_code=409, detail="User already exists")
-        elif e.response['Error']['Code'] == 'InvalidPasswordException':
-            raise HTTPException(status_code=400, detail="Password does not meet requirements")
+        elif e.response["Error"]["Code"] == "InvalidPasswordException":
+            raise HTTPException(
+                status_code=400, detail="Password does not meet requirements"
+            )
         else:
-            raise HTTPException(status_code=400, detail=f"Boto3 error: {e.response['Error']['Code']}. {e.response['Error']['Message']}")
-
+            raise HTTPException(
+                status_code=400,
+                detail=f"Boto3 error: {e.response['Error']['Code']}. {e.response['Error']['Message']}",
+            )
 
     return {"email": user.email}

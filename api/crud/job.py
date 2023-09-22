@@ -11,8 +11,10 @@ def enqueue_job(job: models.Job, enqueueing_func: callable):
     user_fs = get_user_filesystem(user_id=job.user_id)
 
     app = job.application
-    job_config = settings.application_config[app["application"]][app["version"]][app["entrypoint"]]
-    
+    job_config = settings.application_config[app["application"]][app["version"]][
+        app["entrypoint"]
+    ]
+
     # App parameters
     app_config = job_config["app"]
     app = schemas.AppSpecs(cmd=app_config["cmd"], env=job.attributes["env_vars"])
@@ -26,14 +28,24 @@ def enqueue_job(job: models.Job, enqueueing_func: callable):
         if not fs.isdir(root_in_dir):
             in_files = [root_in]
         else:
-            in_files = [f.path for f in fs.list_directory(root_in_dir, dirs=False, recursive=True)]
+            in_files = [
+                f.path
+                for f in fs.list_directory(root_in_dir, dirs=False, recursive=True)
+            ]
         for in_f in in_files:
-            out_files[f"{root_out}/{os.path.relpath(in_f, root_in)}"] = fs.full_path_uri(in_f)
+            out_files[
+                f"{root_out}/{os.path.relpath(in_f, root_in)}"
+            ] = fs.full_path_uri(in_f)
         return out_files
 
     config_path = f"config/{job.attributes['files_down']['config_id']}"
-    data_paths = [f"data/{data_id}" for data_id in job.attributes["files_down"]["data_ids"]]
-    artifact_paths = [f"artifact/{artifact_id}" for artifact_id in job.attributes["files_down"]["artifact_ids"]]
+    data_paths = [
+        f"data/{data_id}" for data_id in job.attributes["files_down"]["data_ids"]
+    ]
+    artifact_paths = [
+        f"artifact/{artifact_id}"
+        for artifact_id in job.attributes["files_down"]["artifact_ids"]
+    ]
     _validate_files(user_fs, [config_path] + data_paths + artifact_paths)
     files_down = prepare_files(config_path, "config", user_fs)
     for data_path in data_paths:
@@ -60,7 +72,7 @@ def enqueue_job(job: models.Job, enqueueing_func: callable):
         job=job_specs,
         environment=job.environment if job.environment else models.EnvironmentTypes.any,
         hardware=job.hardware,
-        group=None,  #TODO
+        group=None,  # TODO
         priority=job.priority,
         paths_upload=paths_upload,
     )
@@ -68,7 +80,13 @@ def enqueue_job(job: models.Job, enqueueing_func: callable):
 
 
 def get_jobs(db: Session, user_id: int, offset: int = 0, limit: int = 100):
-    return db.query(models.Job).filter(models.Job.user_id == user_id).offset(offset).limit(limit).all()
+    return (
+        db.query(models.Job)
+        .filter(models.Job.user_id == user_id)
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
 
 
 def get_job(db: Session, job_id: int):
@@ -81,7 +99,9 @@ def _validate_files(filesystem, paths: list[str]):
             raise HTTPException(status_code=400, detail=f"File {_file} does not exist")
 
 
-def create_job(db: Session, enqueueing_func: callable, job: schemas.JobCreate, user_id: int):
+def create_job(
+    db: Session, enqueueing_func: callable, job: schemas.JobCreate, user_id: int
+):
     try:
         db_job = models.Job(**job.dict(), user_id=user_id)
         db.add(db_job)

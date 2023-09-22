@@ -16,6 +16,7 @@ def get_enqueueing_function() -> callable:
         if resp.status_code != 200:
             raise HTTPException(
                 status_code=resp.status_code,
-                detail=f"Error while enqueuing job {queue_item.job_id}. Traceback: \n{resp.text}."
+                detail=f"Error while enqueuing job {queue_item.job_id}. Traceback: \n{resp.text}.",
             )
+
     return enqueue

@@ -1,12 +1,15 @@
 # At import the database is directly created, so need to set this first
 import os
+
 rel_test_db_path = "./test_app.db"
 os.environ["DATABASE_URL"] = f"sqlite:///{rel_test_db_path}"
 
 import pytest
 import shutil
 import dotenv
+
 dotenv.load_dotenv()
+
 from io import BytesIO
 
 import api.database
@@ -14,7 +17,13 @@ from api import settings
 from api.core.filesystem import get_user_filesystem
 from api.main import app
 from api.models import Job
-from api.dependencies import current_user_dep, CognitoClaims, filesystem_dep, APIKeyDependency, workerfacing_api_auth_dep
+from api.dependencies import (
+    current_user_dep,
+    CognitoClaims,
+    filesystem_dep,
+    APIKeyDependency,
+    workerfacing_api_auth_dep,
+)
 
 
 data_file1_name = "data/test/data_file1.txt"
@@ -32,7 +41,10 @@ test_username = "test_user"
 internal_api_key_secret = "test_internal_api_key"
 
 example_app = {"application": "app", "version": "latest", "entrypoint": "test"}
-example_attrs = {"files_down": {"data_ids": ["test"], "config_id": "test", "artifact_ids": []}, "env_vars": {}}
+example_attrs = {
+    "files_down": {"data_ids": ["test"], "config_id": "test", "artifact_ids": []},
+    "env_vars": {},
+}
 
 
 @pytest.fixture(autouse=True, scope="module")
@@ -51,7 +63,10 @@ def monkeypatch_module():
         yield mp
 
 
-@pytest.fixture(scope="module", params=["local", "aws_mock", pytest.param("aws", marks=pytest.mark.aws)])
+@pytest.fixture(
+    scope="module",
+    params=["local", "aws_mock", pytest.param("aws", marks=pytest.mark.aws)],
+)
 def env(request):
     return request.param
 
@@ -82,6 +97,7 @@ def base_filesystem(env, monkeypatch_module):
 
     if env == "local":
         from api.core.filesystem import LocalFilesystem
+
         yield LocalFilesystem(base_user_dir)
         try:
             shutil.rmtree(base_user_dir)
@@ -90,9 +106,11 @@ def base_filesystem(env, monkeypatch_module):
 
     elif env == "aws_mock":
         from moto import mock_s3
+
         with mock_s3():
             from api.core.filesystem import S3Filesystem
             import boto3
+
             s3_client = boto3.client("s3", region_name=region_name)
             s3_client.create_bucket(
                 Bucket=bucket_name,
@@ -103,6 +121,7 @@ def base_filesystem(env, monkeypatch_module):
     elif env == "aws":
         from api.core.filesystem import S3Filesystem
         import boto3
+
         s3_client = boto3.client("s3", region_name=region_name)
         s3_client.create_bucket(
             Bucket=bucket_name,
@@ -130,7 +149,9 @@ def user_filesystem(base_filesystem):
 
 @pytest.fixture(scope="module", autouse=True)
 def override_filesystem_dep(user_filesystem, monkeypatch_module):
-    monkeypatch_module.setitem(app.dependency_overrides, filesystem_dep, lambda: user_filesystem)
+    monkeypatch_module.setitem(
+        app.dependency_overrides, filesystem_dep, lambda: user_filesystem
+    )
 
 
 @pytest.fixture(autouse=True, scope="module")
@@ -138,7 +159,9 @@ def override_auth(monkeypatch_module):
     monkeypatch_module.setitem(
         app.dependency_overrides,
         current_user_dep,
-        lambda: CognitoClaims(**{"cognito:username": test_username, "email": "test@example.com"}),
+        lambda: CognitoClaims(
+            **{"cognito:username": test_username, "email": "test@example.com"}
+        ),
     )
 
 
@@ -168,8 +191,15 @@ def override_application_config(monkeypatch_module):
                         "handler": {
                             "image_url": "url_test",
                             "aws_job_def": "def_test",
-                            "files_down": {"data_ids": ["data"], "config_id": ["config"]},
-                            "files_up": {"output": "output", "log": "log", "artifact": "artifact"},
+                            "files_down": {
+                                "data_ids": ["data"],
+                                "config_id": ["config"],
+                            },
+                            "files_up": {
+                                "output": "output",
+                                "log": "log",
+                                "artifact": "artifact",
+                            },
                         },
                     },
                 },
@@ -185,8 +215,12 @@ def require_auth(monkeypatch):
 
 @pytest.fixture
 def data_files(user_filesystem):
-    user_filesystem.create_file(data_file1_name, BytesIO(bytes(data_file1_contents, 'utf-8')))
-    user_filesystem.create_file(data_file2_name, BytesIO(bytes(data_file2_contents, 'utf-8')))
+    user_filesystem.create_file(
+        data_file1_name, BytesIO(bytes(data_file1_contents, "utf-8"))
+    )
+    user_filesystem.create_file(
+        data_file2_name, BytesIO(bytes(data_file2_contents, "utf-8"))
+    )
     yield
     user_filesystem.delete(data_file1_name)
     user_filesystem.delete(data_file2_name)
@@ -194,8 +228,12 @@ def data_files(user_filesystem):
 
 @pytest.fixture
 def config_files(user_filesystem):
-    user_filesystem.create_file(config_file1_name, BytesIO(bytes(config_file1_contents, 'utf-8')))
-    user_filesystem.create_file(config_file2_name, BytesIO(bytes(config_file2_contents, 'utf-8')))
+    user_filesystem.create_file(
+        config_file1_name, BytesIO(bytes(config_file1_contents, "utf-8"))
+    )
+    user_filesystem.create_file(
+        config_file2_name, BytesIO(bytes(config_file2_contents, "utf-8"))
+    )
     yield
     user_filesystem.delete(config_file1_name)
     user_filesystem.delete(config_file2_name)
@@ -203,7 +241,9 @@ def config_files(user_filesystem):
 
 @pytest.fixture
 def data_file1(user_filesystem):
-    user_filesystem.create_file(data_file1_name, BytesIO(bytes(data_file1_contents, 'utf-8')))
+    user_filesystem.create_file(
+        data_file1_name, BytesIO(bytes(data_file1_contents, "utf-8"))
+    )
     yield
     user_filesystem.delete(data_file1_name)
 

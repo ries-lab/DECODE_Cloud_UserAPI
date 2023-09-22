@@ -28,13 +28,17 @@ class FileSystem(abc.ABC):
     def init(self):
         raise NotImplementedError()
 
-    def list_directory(self, path: str = "", dirs: bool = True, recursive: bool = False):
+    def list_directory(
+        self, path: str = "", dirs: bool = True, recursive: bool = False
+    ):
         normalized_path = path if path.endswith("/") else path + "/"
         if not self.isdir(normalized_path):
             raise NotADirectoryError(path)
         return self._directory_contents(normalized_path, dirs=dirs, recursive=recursive)
 
-    def _directory_contents(self, path: str, dirs: bool = True, recursive: bool = False):
+    def _directory_contents(
+        self, path: str, dirs: bool = True, recursive: bool = False
+    ):
         raise NotImplementedError()
 
     def get_file_info(self, path: str):
@@ -47,7 +51,7 @@ class FileSystem(abc.ABC):
         if not self.exists(path):
             raise FileNotFoundError(path)
         if self.isdir(path):
-            raise IsADirectoryError('Cannot rename a directory')
+            raise IsADirectoryError("Cannot rename a directory")
         return self._rename_file(path, new_name)
 
     def _rename_file(self, path: str, new_name: str):
@@ -80,7 +84,9 @@ class FileSystem(abc.ABC):
 
     def full_path(self, path: str):
         # For some reason, PurePosixPath returns the root path if one of the components has root path
-        full = str(PurePosixPath(self.root_path, path[1:] if path.startswith("/") else path))
+        full = str(
+            PurePosixPath(self.root_path, path[1:] if path.startswith("/") else path)
+        )
         return full if not path.endswith("/") else full + "/"
 
     def download(self, path: str):
@@ -88,36 +94,45 @@ class FileSystem(abc.ABC):
 
 
 class LocalFilesystem(FileSystem):
-    """ A filesystem that uses the local filesystem. """
+    """A filesystem that uses the local filesystem."""
 
     def init(self):
         os.makedirs(self.root_path, exist_ok=True)
 
-    def _directory_contents(self, path: str, dirs: bool = True, recursive: bool = False):
+    def _directory_contents(
+        self, path: str, dirs: bool = True, recursive: bool = False
+    ):
         if not recursive:
             files = os.listdir(self.full_path(path))
         else:
-            files = [os.path.relpath(str(f), self.full_path(path)) for f in Path(self.full_path(path)).rglob("*")]
+            files = [
+                os.path.relpath(str(f), self.full_path(path))
+                for f in Path(self.full_path(path)).rglob("*")
+            ]
         if not dirs:
-            files = [f for f in files if not os.path.isdir(os.path.join(self.full_path(path), f))]
+            files = [
+                f
+                for f in files
+                if not os.path.isdir(os.path.join(self.full_path(path), f))
+            ]
         for file in files:
-            yield self.get_file_info((path if path != '/' else '') + file)
+            yield self.get_file_info((path if path != "/" else "") + file)
 
     def get_file_info(self, path: str):
-        """ Get file info. """
+        """Get file info."""
         metadata = os.stat(self.full_path(path))
         isdir = self.isdir(path)
         return FileInfo(
-            path=path + '/' if isdir else path,
+            path=path + "/" if isdir else path,
             type=FileTypes.directory if isdir else FileTypes.file,
-            size=humanize.naturalsize(metadata.st_size) if not isdir else ''
+            size=humanize.naturalsize(metadata.st_size) if not isdir else "",
         )
 
     def create_file(self, path, file):
         dir_path = os.path.split(path)[0]
         if not self.exists(dir_path):
             os.makedirs(self.full_path(dir_path))
-        with open(self.full_path(path), 'wb') as f:
+        with open(self.full_path(path), "wb") as f:
             shutil.copyfileobj(file, f)
 
     def delete(self, path: str, reinit_if_root: bool = True):
@@ -125,9 +140,9 @@ class LocalFilesystem(FileSystem):
             return
         super().delete(path, reinit_if_root)
         # Delete empty directories
-        path = path[:-1] if path.endswith('/') else path
-        dir_path = '/'.join(path.split('/')[:-1])
-        if dir_path != '' and not os.listdir(self.full_path(dir_path)):
+        path = path[:-1] if path.endswith("/") else path
+        dir_path = "/".join(path.split("/")[:-1])
+        if dir_path != "" and not os.listdir(self.full_path(dir_path)):
             self.delete(dir_path)
 
     def _rename_file(self, path, new_path):
@@ -140,77 +155,88 @@ class LocalFilesystem(FileSystem):
         shutil.rmtree(self.full_path(path))
 
     def exists(self, path):
-        """ Check if a path exists. """
+        """Check if a path exists."""
         return os.path.exists(self.full_path(path))
 
     def isdir(self, path):
-        """ Check if a path is a directory. """
+        """Check if a path is a directory."""
         if path == "/":
             return True
         return os.path.isdir(self.full_path(path))
 
     def full_path_uri(self, path):
         return self.full_path(path)
-    
+
     def download(self, path):
         if not self.exists(path):
             return None
         if self.isdir(path):
             zip_io = io.BytesIO()
-            with zipfile.ZipFile(zip_io, mode="w", compression=zipfile.ZIP_DEFLATED) as temp_zip:
+            with zipfile.ZipFile(
+                zip_io, mode="w", compression=zipfile.ZIP_DEFLATED
+            ) as temp_zip:
                 for fpath in self.list_directory(path, dirs=False, recursive=True):
                     fpath = str(fpath.path)
                     temp_zip.write(self.full_path(fpath), os.path.relpath(fpath, path))
             return StreamingResponse(
                 iter([zip_io.getvalue()]),
                 media_type="application/x-zip-compressed",
-                headers={"Content-Disposition": f"attachment; filename={path[:-1]}.zip"},
+                headers={
+                    "Content-Disposition": f"attachment; filename={path[:-1]}.zip"
+                },
             )
         else:
             return FileResponse(self.full_path(path))
 
 
 class S3Filesystem(FileSystem):
-    """ A filesystem that uses S3. """
+    """A filesystem that uses S3."""
+
     def __init__(self, root_path: str, s3_client, bucket):
         super().__init__(root_path)
         self.s3_client = s3_client
         self.bucket = bucket
 
     def init(self):
-        self.s3_client.put_object(Bucket=self.bucket, Key=self.root_path + '/')
+        self.s3_client.put_object(Bucket=self.bucket, Key=self.root_path + "/")
 
-    def _directory_contents(self, path: str, dirs: bool = True, recursive: bool = False):
+    def _directory_contents(
+        self, path: str, dirs: bool = True, recursive: bool = False
+    ):
         # Get contents of S3 directory
         full_path = self.full_path(path)
-        paginator = self.s3_client.get_paginator('list_objects_v2')
-        operation_parameters = {'Bucket': self.bucket, 'Prefix': full_path}
-        operation_parameters['Delimiter'] = '/'
+        paginator = self.s3_client.get_paginator("list_objects_v2")
+        operation_parameters = {"Bucket": self.bucket, "Prefix": full_path}
+        operation_parameters["Delimiter"] = "/"
         page_iterator = paginator.paginate(**operation_parameters)
-    
+
         for page in page_iterator:
-            for key in page.get('Contents', []):
-                if key['Key'] == full_path:
+            for key in page.get("Contents", []):
+                if key["Key"] == full_path:
                     continue
                 yield FileInfo(
-                    path=key['Key'][len(str(self.root_path))+1:],
+                    path=key["Key"][len(str(self.root_path)) + 1 :],
                     type=FileTypes.file,
-                    size=humanize.naturalsize(key['Size'])
+                    size=humanize.naturalsize(key["Size"]),
                 )
-            for key in page.get('CommonPrefixes', []):
-                dir_path = key['Prefix'][len(str(self.root_path))+1:]
+            for key in page.get("CommonPrefixes", []):
+                dir_path = key["Prefix"][len(str(self.root_path)) + 1 :]
                 if dirs:
-                    yield FileInfo(path=dir_path, type=FileTypes.directory, size='')
+                    yield FileInfo(path=dir_path, type=FileTypes.directory, size="")
                 if recursive:
-                    for ret in self._directory_contents(dir_path, dirs=dirs, recursive=recursive):
+                    for ret in self._directory_contents(
+                        dir_path, dirs=dirs, recursive=recursive
+                    ):
                         yield ret
 
     def get_file_info(self, path: str):
-        metadata = self.s3_client.head_object(Bucket=self.bucket, Key=self.full_path(path))
+        metadata = self.s3_client.head_object(
+            Bucket=self.bucket, Key=self.full_path(path)
+        )
         return FileInfo(
             path=path,
             type=FileTypes.file,
-            size=humanize.naturalsize(metadata['ContentLength'])
+            size=humanize.naturalsize(metadata["ContentLength"]),
         )
 
     def create_file(self, path, file):
@@ -219,8 +245,11 @@ class S3Filesystem(FileSystem):
 
     def _rename_file(self, path, new_path):
         # Rename file on S3
-        self.s3_client.copy_object(Bucket=self.bucket, Key=self.full_path(new_path),
-                                   CopySource={'Bucket': self.bucket, 'Key': self.full_path(path)})
+        self.s3_client.copy_object(
+            Bucket=self.bucket,
+            Key=self.full_path(new_path),
+            CopySource={"Bucket": self.bucket, "Key": self.full_path(path)},
+        )
         self.s3_client.delete_object(Bucket=self.bucket, Key=self.full_path(path))
 
     def _delete_file(self, path):
@@ -229,38 +258,44 @@ class S3Filesystem(FileSystem):
 
     def _delete_directory(self, path):
         # Delete entire folder from S3
-        paginator = self.s3_client.get_paginator('list_objects_v2')
-        operation_parameters = {'Bucket': self.bucket, 'Prefix': self.full_path(path)}
+        paginator = self.s3_client.get_paginator("list_objects_v2")
+        operation_parameters = {"Bucket": self.bucket, "Prefix": self.full_path(path)}
         page_iterator = paginator.paginate(**operation_parameters)
-        delete_keys = {'Objects': []}
+        delete_keys = {"Objects": []}
         for page in page_iterator:
-            for key in page.get('Contents'):
-                delete_keys['Objects'].append({'Key': key['Key']})
+            for key in page.get("Contents"):
+                delete_keys["Objects"].append({"Key": key["Key"]})
         self.s3_client.delete_objects(Bucket=self.bucket, Delete=delete_keys)
 
     def exists(self, path):
         # Check if there is any S3 object with the given path as prefix
-        objects = self.s3_client.list_objects_v2(Bucket=self.bucket, Prefix=self.full_path(path), MaxKeys=1)
-        return 'Contents' in objects
+        objects = self.s3_client.list_objects_v2(
+            Bucket=self.bucket, Prefix=self.full_path(path), MaxKeys=1
+        )
+        return "Contents" in objects
 
     def isdir(self, path):
         if path == "/":
             return True
-        return self.exists(path) if path.endswith('/') else False
+        return self.exists(path) if path.endswith("/") else False
 
     def full_path_uri(self, path):
-        return 's3://' + self.bucket + '/' + self.full_path(path)
-    
+        return "s3://" + self.bucket + "/" + self.full_path(path)
+
     def download(self, path):
         if not self.exists(path):
             return None
-        _get_file_content = lambda path: self.s3_client.get_object(Bucket=self.bucket, Key=self.full_path(path))["Body"]
+        _get_file_content = lambda path: self.s3_client.get_object(
+            Bucket=self.bucket, Key=self.full_path(path)
+        )["Body"]
         if self.isdir(path):
             zip_buffer = io.BytesIO()
-            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
                 for fpath in self.list_directory(path, dirs=False, recursive=True):
                     fpath = str(fpath.path)
-                    zipf.writestr(os.path.relpath(fpath, path), _get_file_content(fpath).read())
+                    zipf.writestr(
+                        os.path.relpath(fpath, path), _get_file_content(fpath).read()
+                    )
             zip_buffer.seek(0)
             headers = {
                 "Content-Disposition": f"attachment; filename={path[:-1]}.zip",
@@ -272,16 +307,16 @@ class S3Filesystem(FileSystem):
 
 
 def get_filesystem_with_root(root_path: str):
-    """ Get the filesystem to use. """
-    if settings.filesystem == 's3':
-        s3_client = boto3.client('s3')
+    """Get the filesystem to use."""
+    if settings.filesystem == "s3":
+        s3_client = boto3.client("s3")
         return S3Filesystem(root_path, s3_client, settings.s3_bucket)
-    elif settings.filesystem == 'local':
+    elif settings.filesystem == "local":
         return LocalFilesystem(root_path)
     else:
-        raise ValueError('Invalid filesystem setting')
+        raise ValueError("Invalid filesystem setting")
 
 
 def get_user_filesystem(user_id: str):
-    """ Get the filesystem to use for a user. """
+    """Get the filesystem to use for a user."""
     return get_filesystem_with_root(str(Path(settings.user_data_root_path) / user_id))

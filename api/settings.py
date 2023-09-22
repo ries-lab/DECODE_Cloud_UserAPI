@@ -26,7 +26,9 @@ user_data_root_path = os.environ.get("USER_DATA_ROOT_PATH")
 workerfacing_api_url = os.environ.get("WORKERFACING_API_URL", "http://127.0.0.1:8001")
 internal_api_key_secret = os.environ.get("INTERNAL_API_KEY_SECRET")
 try:
-    internal_api_key_secret = json.loads(internal_api_key_secret)["password"]  # AWS Secrets Manager
+    internal_api_key_secret = json.loads(internal_api_key_secret)[
+        "password"
+    ]  # AWS Secrets Manager
 except:
     pass
 
@@ -43,17 +45,22 @@ except:
 
 
 # Config
-application_config_file = os.environ.get("APPLICATION_CONFIG_FILE", os.path.join(os.path.dirname(__file__), "..", "application_config.yaml"))
+application_config_file = os.environ.get(
+    "APPLICATION_CONFIG_FILE",
+    os.path.join(os.path.dirname(__file__), "..", "application_config.yaml"),
+)
+
 
 class JITConfig(object):
     def __getattribute__(self, __name: str) -> Any:
         with open(application_config_file) as f:
             config = yaml.safe_load(f)
-        if __name == 'config':
+        if __name == "config":
             return config
         return getattr(config, __name)
-    
+
     def __getitem__(self, item):
         return self.config[item]
+
 
 application_config = JITConfig()

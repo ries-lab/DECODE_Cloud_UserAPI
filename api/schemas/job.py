@@ -18,14 +18,14 @@ class Application(BaseModel):
     version: str
     entrypoint: str
 
-    @validator('application')
+    @validator("application")
     def application_check(cls, v, values):
         allowed = list(settings.application_config.keys())
         if v not in allowed:
             raise ValueError(f"Application must be one of {allowed}, not {v}.")
         return v
 
-    @validator('version')
+    @validator("version")
     def version_check(cls, v, values):
         # no need to check application, since validation done in order of definition
         allowed = list(settings.application_config[values["application"]].keys())
@@ -33,9 +33,11 @@ class Application(BaseModel):
             raise ValueError(f"Version must be one of {allowed}, not {v}.")
         return v
 
-    @validator('entrypoint')
+    @validator("entrypoint")
     def entrypoint_check(cls, v, values):
-        allowed = list(settings.application_config[values["application"]][values["version"]].keys())
+        allowed = list(
+            settings.application_config[values["application"]][values["version"]].keys()
+        )
         if v not in allowed:
             raise ValueError(f"Entrypoint must be one of {allowed}, not {v}.")
         return v
@@ -60,18 +62,22 @@ class JobBase(BaseModel):
     attributes: JobAttributes
     hardware: HardwareSpecs | None = None
 
-    @validator('attributes')
+    @validator("attributes")
     def env_check(cls, v, values):
         app = values["application"]
-        application = app.application if hasattr(app, "application") else app["application"]
+        application = (
+            app.application if hasattr(app, "application") else app["application"]
+        )
         version = app.version if hasattr(app, "version") else app["version"]
         entrypoint = app.entrypoint if hasattr(app, "entrypoint") else app["entrypoint"]
-        allowed = settings.application_config[application][version][entrypoint]["app"]["env"]
+        allowed = settings.application_config[application][version][entrypoint]["app"][
+            "env"
+        ]
         if not all(v_ in allowed for v_ in v.env_vars):
             raise ValueError(f"Environment variables must be in {allowed}.")
         return v
-    
-    @validator('priority')
+
+    @validator("priority")
     def priority_check(cls, v, values):
         if v is None:
             v = 0
