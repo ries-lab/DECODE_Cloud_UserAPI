@@ -83,8 +83,6 @@ def _validate_files(filesystem, paths: list[str]):
 
 
 def create_job(db: Session, enqueueing_func: callable, job: schemas.JobCreate, user_id: int):
-    if job.priority < 0 or job.priority > 5:
-        raise HTTPException(status_code=400, detail="Priority must be between 1 and 5")
     try:
         db_job = models.Job(**job.dict(), user_id=user_id)
         db.add(db_job)

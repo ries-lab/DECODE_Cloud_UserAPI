@@ -70,6 +70,14 @@ class JobBase(BaseModel):
         if not all(v_ in allowed for v_ in v.env_vars):
             raise ValueError(f"Environment variables must be in {allowed}.")
         return v
+    
+    @validator('priority')
+    def priority_check(cls, v, values):
+        if v is None:
+            v = 0
+        elif v < 0 or v > 5:
+            raise ValueError(f"Priority must be between 0 and 5, not {v}.")
+        return v
 
 
 class JobReadBase(BaseModel):

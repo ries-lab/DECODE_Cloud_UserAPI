@@ -146,6 +146,8 @@ class LocalFilesystem(FileSystem):
 
     def isdir(self, path):
         """ Check if a path is a directory. """
+        if path == "/":
+            return True
         return os.path.isdir(self.full_path(path))
 
     def full_path_uri(self, path):
@@ -243,6 +245,8 @@ class S3Filesystem(FileSystem):
         return 'Contents' in objects
 
     def isdir(self, path):
+        if path == "/":
+            return True
         return self.exists(path) if path.endswith('/') else False
 
     def full_path_uri(self, path):
