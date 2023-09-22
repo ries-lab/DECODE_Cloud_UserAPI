@@ -1,6 +1,6 @@
-from api.core.filesystem import FileTypes
-
 from pydantic import BaseModel
+
+from api.core.filesystem import FileTypes
 
 
 class FileBase(BaseModel):

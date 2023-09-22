@@ -1,8 +1,9 @@
-import api.settings as settings
-from api.schemas import QueueJob
 import requests
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
+
+import api.settings as settings
+from api.schemas import QueueJob
 
 
 def get_enqueueing_function() -> callable:

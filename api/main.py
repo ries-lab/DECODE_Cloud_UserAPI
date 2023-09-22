@@ -1,10 +1,9 @@
 import dotenv
 dotenv.load_dotenv()
-
 from fastapi import FastAPI
-from .database import engine, Base
 
 from api import settings
+from api.database import engine, Base
 from api.endpoints import files, token, user, jobs, job_update
 from api.exceptions import register_exception_handlers
 

@@ -1,12 +1,11 @@
 import boto3
-
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi_cloudauth.cognito import CognitoClaims
 
+from api.core.filesystem import get_user_filesystem
+from api.dependencies import current_user_dep
 from api.schemas.user import User, UserCreate
 from api.settings import cognito_user_pool_id
-from api.dependencies import current_user_dep
-from api.core.filesystem import get_user_filesystem
 
 router = APIRouter()
 

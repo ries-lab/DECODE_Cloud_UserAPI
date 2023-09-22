@@ -1,8 +1,8 @@
-from fastapi import APIRouter, HTTPException, status
 import boto3
+from fastapi import APIRouter, HTTPException, status
 
-from api.schemas.token import TokenLogin, TokenResponse
 from api.core.aws import calculate_secret_hash
+from api.schemas.token import TokenLogin, TokenResponse
 from api.settings import cognito_client_id, cognito_secret
 
 router = APIRouter()

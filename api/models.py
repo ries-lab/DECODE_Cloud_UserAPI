@@ -1,5 +1,5 @@
-import enum
 import datetime
+import enum
 from sqlalchemy import Column, Integer, String, Enum, DateTime, JSON, UniqueConstraint
 
 from api.database import Base

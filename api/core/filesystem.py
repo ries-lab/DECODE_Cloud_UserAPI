@@ -1,15 +1,14 @@
+import abc
+import boto3
+import enum
+import humanize
+import io
 import os
 import shutil
-import enum
-import abc
-import io
 import zipfile
 from collections import namedtuple
 from fastapi.responses import FileResponse, StreamingResponse
 from pathlib import Path, PurePosixPath
-
-import humanize
-import boto3
 
 import api.settings as settings
 

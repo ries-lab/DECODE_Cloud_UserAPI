@@ -1,5 +1,4 @@
 import typing
-
 from fastapi import Request, Depends, Header, HTTPException
 from fastapi_cloudauth.cognito import CognitoCurrentUser, CognitoClaims
 

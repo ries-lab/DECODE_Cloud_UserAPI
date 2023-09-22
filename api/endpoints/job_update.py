@@ -1,6 +1,5 @@
-from sqlalchemy.orm import Session
-
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
 import api.crud.job as job_crud
 import api.database as database
