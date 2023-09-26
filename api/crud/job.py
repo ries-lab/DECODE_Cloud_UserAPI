@@ -64,7 +64,7 @@ def enqueue_job(job: models.Job, enqueueing_func: callable):
     paths_upload = {
         "output": user_fs.full_path_uri(f"output/{job.id}"),
         "log": user_fs.full_path_uri(f"log/{job.id}"),
-        "artifact": user_fs.full_path_uri(f"log/{job.id}"),
+        "artifact": user_fs.full_path_uri(f"artifact/{job.id}"),
     }
 
     job_specs = schemas.JobSpecs(app=app, handler=handler, meta=meta)
