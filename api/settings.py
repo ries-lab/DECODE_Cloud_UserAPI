@@ -34,14 +34,15 @@ except:
 
 
 # Authentication
-cognito_client_id = os.environ.get("COGNITO_CLIENT_ID")
 cognito_user_pool_id = os.environ.get("COGNITO_USER_POOL_ID")
 cognito_region = os.environ.get("COGNITO_REGION")
+cognito_client_id = os.environ.get("COGNITO_CLIENT_ID")
 cognito_secret = os.environ.get("COGNITO_SECRET")
 try:
     cognito_secret = json.loads(cognito_secret)["password"]  # AWS Secrets Manager
 except:
     pass
+cognito_public_client_id = os.enviorn.get("COGNITO_PUBLIC_CLIENT_ID")
 
 
 # Config
