@@ -42,7 +42,7 @@ try:
     cognito_secret = json.loads(cognito_secret)["password"]  # AWS Secrets Manager
 except:
     pass
-cognito_public_client_id = os.enviorn.get("COGNITO_PUBLIC_CLIENT_ID")
+cognito_public_client_id = os.environ.get("COGNITO_PUBLIC_CLIENT_ID")
 
 
 # Config
