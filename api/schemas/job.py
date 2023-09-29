@@ -121,6 +121,8 @@ class AppSpecs(BaseModel):
 class HandlerSpecs(BaseModel):
     image_url: str
     aws_job_def: str | None = None
+    image_name: str | None = None
+    image_version: str | None = None
     files_down: dict[str, str] | None = None  # local_path: fs_path
     files_up: dict[OutputEndpoints, str]  # endpoint: local_path
 

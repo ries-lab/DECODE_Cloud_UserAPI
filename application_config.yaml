@@ -1,12 +1,14 @@
 decode:
-  latest:
+  dev_multiphot_tar:
     train:
       app:
         cmd: ["--config-dir=/data/config", "--config-name=config", "Paths.experiment=/data/model", "Paths.logging=/data/log"]
         env: ["wandb_api_key"]
       handler:
         image_url: "public.ecr.aws/d2r7a3u1/decode:dev_multiphot_tar"
-        aws_job_def: decode_train_latest
+        aws_job_def: decode_train_dev_multiphot_tar
+        image_name: decode
+        image_version: dev_multiphot_tar
         files_down:
           config_id: config
           data_ids: data
