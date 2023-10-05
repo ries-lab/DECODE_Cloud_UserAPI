@@ -1,10 +1,27 @@
-from fastapi import APIRouter, HTTPException, UploadFile, status, Depends
+import re
+from fastapi import APIRouter, HTTPException, UploadFile, status, Depends, Request
 
 import api.schemas as schemas
 from api.dependencies import current_user_global_dep, filesystem_dep
 
 
 router = APIRouter(dependencies=[Depends(current_user_global_dep)])
+
+
+@router.get("/files/{file_path:path}/download", status_code=status.HTTP_200_OK)
+def download_file(file_path: str, filesystem=Depends(filesystem_dep)):
+    ret = filesystem.download(file_path)
+    if not ret:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    return ret
+
+
+@router.get("/files/{file_path:path}/url")
+def url_file(file_path: str, request: Request, filesystem=Depends(filesystem_dep)):
+    ret = filesystem.get_file_url(file_path, request.url._url, re.escape("/url") + "$", re.escape("/download") + "$")
+    if not ret:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    return ret
 
 
 @router.get("/files/{base_path:path}", response_model=list[schemas.File])
@@ -56,11 +73,3 @@ def rename_file(
 def delete_file(file_path: str, filesystem=Depends(filesystem_dep)):
     filesystem.delete(file_path)
     return {}
-
-
-@router.get("/downloads/{file_path:path}", status_code=status.HTTP_200_OK)
-def download_file(file_path: str, filesystem=Depends(filesystem_dep)):
-    ret = filesystem.download(file_path)
-    if not ret:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    return ret

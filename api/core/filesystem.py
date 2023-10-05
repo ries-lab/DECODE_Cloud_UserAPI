@@ -4,6 +4,7 @@ import enum
 import humanize
 import io
 import os
+import re
 import shutil
 import zipfile
 from collections import namedtuple
@@ -90,6 +91,9 @@ class FileSystem(abc.ABC):
         return full if not path.endswith("/") else full + "/"
 
     def download(self, path: str):
+        raise NotImplementedError()
+    
+    def get_file_url(self, path: str, request_url: str, url_endpoint: str, download_endpoint: str):
         raise NotImplementedError()
 
 
@@ -187,6 +191,11 @@ class LocalFilesystem(FileSystem):
             )
         else:
             return FileResponse(self.full_path(path))
+    
+    def get_file_url(self, path: str, request_url: str, url_endpoint: str, download_endpoint: str):
+        if self.exists(path):
+            return re.sub(url_endpoint, download_endpoint, request_url)
+        return None
 
 
 class S3Filesystem(FileSystem):
@@ -304,6 +313,20 @@ class S3Filesystem(FileSystem):
             return StreamingResponse(io.BytesIO(zip_buffer.read()), headers=headers)
         else:
             return StreamingResponse(content=_get_file_content(path).iter_chunks())
+    
+    def get_file_url(self, path: str, request_url: str, url_endpoint: str, download_endpoint: str):
+        bucket = self.bucket
+        path = self.full_path(path)
+    
+        response = self.s3_client.list_objects_v2(Bucket=bucket, Prefix=path)
+
+        if not "Contents" in response:
+            return None
+        return self.s3_client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": bucket, "Key": path},
+            ExpiresIn=60 * 10,
+        )
 
 
 def get_filesystem_with_root(root_path: str):

@@ -192,6 +192,12 @@ def test_delete_files_happy(data_file1):
 
 
 def test_download_file_happy(data_file1):
-    response = client.get(f"downloads/{data_file1_name}")
+    response = client.get(f"{endpoint}/{data_file1_name}/download")
     assert response.status_code == 200
     assert response.content.decode("utf-8") == data_file1_contents
+
+
+def test_get_url_file_happy(data_file1):
+    response = client.get(f"{endpoint}/{data_file1_name}/url")
+    assert response.status_code == 200
+    assert isinstance(response.json(), str)
