@@ -48,6 +48,9 @@ class FileSystem(abc.ABC):
     def create_file(self, path: str, file):
         raise NotImplementedError()
 
+    def create_file_url(self, path: str, request_url: str, url_endpoint: str, download_endpoint: str):
+        raise NotImplementedError()
+
     def rename(self, path: str, new_name: str):
         if not self.exists(path):
             raise FileNotFoundError(path)
@@ -93,7 +96,7 @@ class FileSystem(abc.ABC):
     def download(self, path: str):
         raise NotImplementedError()
     
-    def get_file_url(self, path: str, request_url: str, url_endpoint: str, download_endpoint: str):
+    def download_url(self, path: str, request_url: str, url_endpoint: str, download_endpoint: str):
         raise NotImplementedError()
 
 
@@ -138,6 +141,11 @@ class LocalFilesystem(FileSystem):
             os.makedirs(self.full_path(dir_path))
         with open(self.full_path(path), "wb") as f:
             shutil.copyfileobj(file, f)
+
+    def create_file_url(self, path: str, request_url: str, url_endpoint: str, download_endpoint: str):
+        if self.exists(path):
+            return {"url": re.sub(url_endpoint, download_endpoint, request_url), "fields": {}}
+        return None
 
     def delete(self, path: str, reinit_if_root: bool = True):
         if not self.exists(path):
@@ -192,7 +200,7 @@ class LocalFilesystem(FileSystem):
         else:
             return FileResponse(self.full_path(path))
     
-    def get_file_url(self, path: str, request_url: str, url_endpoint: str, download_endpoint: str):
+    def download_url(self, path: str, request_url: str, url_endpoint: str, download_endpoint: str):
         if self.exists(path):
             return re.sub(url_endpoint, download_endpoint, request_url)
         return None
@@ -251,6 +259,20 @@ class S3Filesystem(FileSystem):
     def create_file(self, path, file):
         # Upload file to S3 efficiently
         self.s3_client.upload_fileobj(file, self.bucket, self.full_path(path))
+
+    def create_file_url(self, path: str, request_url: str, url_endpoint: str, download_endpoint: str):
+        bucket = self.bucket
+        path = self.full_path(path)
+        if path[-1] != "/":
+            path = path + "/"
+    
+        return self.s3_client.generate_presigned_post(
+            Bucket=bucket,
+            Key=path + "${filename}",
+            Fields=None,
+            Conditions=[["starts-with", "$key", path]],  # can be used for multiple uploads to folder
+            ExpiresIn=60 * 10,
+        )
 
     def _rename_file(self, path, new_path):
         # Rename file on S3
@@ -314,7 +336,7 @@ class S3Filesystem(FileSystem):
         else:
             return StreamingResponse(content=_get_file_content(path).iter_chunks())
     
-    def get_file_url(self, path: str, request_url: str, url_endpoint: str, download_endpoint: str):
+    def download_url(self, path: str, request_url: str, url_endpoint: str, download_endpoint: str):
         bucket = self.bucket
         path = self.full_path(path)
     

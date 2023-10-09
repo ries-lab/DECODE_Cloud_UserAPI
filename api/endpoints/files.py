@@ -1,3 +1,4 @@
+import os
 import re
 from fastapi import APIRouter, HTTPException, UploadFile, status, Depends, Request
 
@@ -17,8 +18,8 @@ def download_file(file_path: str, filesystem=Depends(filesystem_dep)):
 
 
 @router.get("/files/{file_path:path}/url")
-def url_file(file_path: str, request: Request, filesystem=Depends(filesystem_dep)):
-    ret = filesystem.get_file_url(file_path, request.url._url, re.escape("/url") + "$", re.escape("/download") + "$")
+def download_file_url(file_path: str, request: Request, filesystem=Depends(filesystem_dep)):
+    ret = filesystem.download_url(file_path, request.url._url, re.escape("/url") + "$", "/download")
     if not ret:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return ret
@@ -34,31 +35,61 @@ def list_files(
     return filesystem.list_directory(base_path, dirs=show_dirs, recursive=recursive)
 
 
-def upload_file(file_path: str, file: UploadFile, filesystem):
+def upload_file(base_path: str, file: UploadFile, filesystem):
+    file_path = os.path.join(base_path, file.filename)
     filesystem.create_file(file_path, file.file)
     return filesystem.get_file_info(file_path)
 
 
 @router.post(
-    "/files/config/{config_id}/{file_path:path}",
+    "/files/config/{config_id}/{base_path:path}/upload",
     response_model=schemas.File,
     status_code=status.HTTP_201_CREATED,
 )
 def upload_file_config(
-    config_id: str, file_path: str, file: UploadFile, filesystem=Depends(filesystem_dep)
+    config_id: str, base_path: str, file: UploadFile, filesystem=Depends(filesystem_dep)
 ):
-    return upload_file(f"config/{config_id}/" + file_path, file, filesystem)
+    return upload_file(f"config/{config_id}/" + base_path, file, filesystem)
 
 
 @router.post(
-    "/files/data/{data_id}/{file_path:path}",
+    "/files/data/{data_id}/{base_path:path}/upload",
     response_model=schemas.File,
     status_code=status.HTTP_201_CREATED,
 )
 def upload_file_data(
-    data_id: str, file_path: str, file: UploadFile, filesystem=Depends(filesystem_dep)
+    data_id: str, base_path: str, file: UploadFile, filesystem=Depends(filesystem_dep)
 ):
-    return upload_file(f"data/{data_id}/" + file_path, file, filesystem)
+    return upload_file(f"data/{data_id}/" + base_path, file, filesystem)
+
+
+def upload_file_url(base_path: str, request: Request, filesystem):
+    ret = filesystem.create_file_url(base_path, request.url._url, re.escape("/url") + "$", "/upload")
+    if not ret:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    return ret
+
+
+@router.post(
+    "/files/config/{config_id}/{base_path:path}/url",
+    response_model=dict,
+    status_code=status.HTTP_201_CREATED,
+)
+def upload_file_config_url(
+    config_id: str, base_path: str, request: Request, filesystem=Depends(filesystem_dep)
+):
+    return upload_file_url(f"config/{config_id}/" + base_path, request, filesystem)
+
+
+@router.post(
+    "/files/data/{data_id}/{base_path:path}/url",
+    response_model=dict,
+    status_code=status.HTTP_201_CREATED,
+)
+def upload_file_data_url(
+    data_id: str, base_path: str, request: Request, filesystem=Depends(filesystem_dep)
+):
+    return upload_file_url(f"data/{data_id}/" + base_path, request, filesystem)
 
 
 @router.put("/files/{file_path:path}", response_model=schemas.File)

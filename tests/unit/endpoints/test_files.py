@@ -1,5 +1,6 @@
-from io import BytesIO
+import os
 import pytest
+from io import BytesIO
 from tests.conftest import (
     data_file1_name,
     data_file1_contents,
@@ -117,12 +118,12 @@ def test_get_files_fail_not_a_directory():
 def test_post_files_happy(cleanup_files):
     files = {
         "file": (
-            data_file1_name,
+            os.path.split(data_file1_name)[-1],
             BytesIO(bytes(data_file1_contents, "utf-8")),
             "text/plain",
         )
     }
-    response = client.post(f"{endpoint}/{data_file1_name}", files=files)
+    response = client.post(f"{endpoint}/{os.path.dirname(data_file1_name)}//upload", files=files)
     assert response.status_code == 201
     assert response.json() == {
         "path": data_file1_name,
@@ -201,3 +202,9 @@ def test_get_url_file_happy(data_file1):
     response = client.get(f"{endpoint}/{data_file1_name}/url")
     assert response.status_code == 200
     assert isinstance(response.json(), str)
+
+
+def test_post_url_file_happy(data_file1):
+    response = client.post(f"{endpoint}/{os.path.dirname(data_file1_name)}//url")
+    assert response.status_code == 201
+    assert isinstance(response.json(), dict)
