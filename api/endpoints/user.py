@@ -12,7 +12,7 @@ router = APIRouter()
 
 @router.get("/user", response_model=User)
 def get_user(current_user: CognitoClaims = Depends(current_user_dep)):
-    return {"email": current_user.email}
+    return {"email": current_user.email, "groups": current_user.cognito_groups}
 
 
 @router.post("/user", response_model=User)
@@ -27,6 +27,14 @@ def register_user(user: UserCreate):
             TemporaryPassword=user.password,
             MessageAction="SUPPRESS",
         )
+
+        if user.groups:
+            for group in user.groups:
+                client.admin_add_user_to_group(
+                    Username=user.email,
+                    GroupName=group.value,
+                    UserPoolId=cognito_user_pool_id,
+                )
 
         # Reset password to change state
         client.admin_set_user_password(
@@ -50,4 +58,4 @@ def register_user(user: UserCreate):
                 detail=f"Boto3 error: {e.response['Error']['Code']}. {e.response['Error']['Message']}",
             )
 
-    return {"email": user.email}
+    return {"email": user.email, "groups": user.groups}
