@@ -8,7 +8,7 @@ import pytest
 import shutil
 import dotenv
 
-dotenv.load_dotenv()
+dotenv.load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 from io import BytesIO
 
@@ -191,6 +191,8 @@ def override_application_config(monkeypatch_module):
                         "handler": {
                             "image_url": "url_test",
                             "aws_job_def": "def_test",
+                            "image_name": "name_test",
+                            "image_version": "version_test",
                             "files_down": {
                                 "data_ids": ["data"],
                                 "config_id": ["config"],
