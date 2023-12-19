@@ -30,6 +30,7 @@ class Job(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(String, nullable=False)
+    user_email = Column(String, nullable=True)
     job_name = Column(String)
     date_created = Column(DateTime, default=datetime.datetime.utcnow)
     date_started = Column(DateTime)

@@ -40,5 +40,9 @@ def start_job(
     enqueueing_func: str = Depends(get_enqueueing_function),
 ):
     return crud.create_job(
-        db, enqueueing_func, job, user_id=request.state.current_user.username
+        db,
+        enqueueing_func,
+        job,
+        user_id=request.state.current_user.username,
+        user_email=request.state.current_user.email,
     )

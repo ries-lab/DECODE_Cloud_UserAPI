@@ -100,6 +100,7 @@ class JobCreate(JobBase):
 
 class Job(JobBase, JobReadBase):
     user_id: str
+    user_email: str | None = None
 
     class Config:
         orm_mode = True

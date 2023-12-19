@@ -102,10 +102,14 @@ def _validate_files(filesystem, paths: list[str]):
 
 
 def create_job(
-    db: Session, enqueueing_func: callable, job: schemas.JobCreate, user_id: int
+    db: Session,
+    enqueueing_func: callable,
+    job: schemas.JobCreate,
+    user_id: int,
+    user_email: str | None = None,
 ):
     try:
-        db_job = models.Job(**job.dict(), user_id=user_id)
+        db_job = models.Job(**job.dict(), user_id=user_id, user_email=user_email)
         db.add(db_job)
         db.flush()
     except IntegrityError:

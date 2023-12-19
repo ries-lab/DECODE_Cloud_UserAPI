@@ -1,8 +1,10 @@
 from fastapi.testclient import TestClient
-from tests.conftest import internal_api_key_secret, jobs
+from unittest.mock import MagicMock
+from tests.conftest import internal_api_key_secret
 from api.main import app
 from api.models import Job
 import api.database
+import api.settings
 
 
 client = TestClient(app)
@@ -31,3 +33,15 @@ def test_job_status_update(jobs):
     assert response.status_code == 204
     database = api.database.SessionLocal()
     assert database.query(Job).filter(Job.id == jobs[0].id).first().status == "running"
+
+
+def test_finished_notification(jobs, monkeypatch):
+    mock_email_sender = MagicMock()
+    mock_email_sender.send_email = MagicMock()
+    monkeypatch.setattr(api.settings, "email_sender", mock_email_sender)
+    client.put(
+        endpoint,
+        json={"job_id": jobs[0].id, "status": "finished"},
+        headers={"x-api-key": internal_api_key_secret},
+    )
+    mock_email_sender.send_email.assert_called_once()

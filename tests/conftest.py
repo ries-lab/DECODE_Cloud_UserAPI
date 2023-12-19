@@ -1,19 +1,17 @@
-# At import the database is directly created, so need to set this first
 import os
-
-rel_test_db_path = "./test_app.db"
-os.environ["DATABASE_URL"] = f"sqlite:///{rel_test_db_path}"
-
 import pytest
 import shutil
 import dotenv
 
+# At import the database is directly created, so need to set this first
 dotenv.load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+rel_test_db_path = "./test_app.db"
+os.environ["DATABASE_URL"] = f"sqlite:///{rel_test_db_path}"
 
 from io import BytesIO
 
 import api.database
-from api import settings
+from api import notifications, settings
 from api.core.filesystem import get_user_filesystem
 from api.main import app
 from api.models import Job
@@ -37,6 +35,7 @@ config_file2_name = "config/test/config_file2.txt"
 config_file2_contents = "config file2 contents"
 
 test_username = "test_user"
+test_user_email = "test@example.com"
 
 internal_api_key_secret = "test_internal_api_key"
 
@@ -160,7 +159,7 @@ def override_auth(monkeypatch_module):
         app.dependency_overrides,
         current_user_dep,
         lambda: CognitoClaims(
-            **{"cognito:username": test_username, "email": "test@example.com"}
+            **{"cognito:username": test_username, "email": test_user_email}
         ),
     )
 
@@ -173,6 +172,15 @@ def override_internal_api_key_secret(monkeypatch_module):
         APIKeyDependency(internal_api_key_secret),
     )
     return internal_api_key_secret
+
+
+@pytest.fixture(scope="module", autouse=True)
+def override_email_sender(monkeypatch_module):
+    monkeypatch_module.setattr(
+        settings,
+        "email_sender",
+        notifications.DummyEmailSender(),
+    )
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -263,6 +271,7 @@ def jobs(data_files, config_files):
     job1 = Job(
         id=42,
         user_id=test_username,
+        user_email=test_user_email,
         job_name="job_test_1",
         environment="cloud",
         application=example_app,
@@ -272,6 +281,7 @@ def jobs(data_files, config_files):
     job2 = Job(
         id=50,
         user_id=test_username,
+        user_email=test_user_email,
         job_name="job_test_2",
         environment=None,
         application=example_app,
