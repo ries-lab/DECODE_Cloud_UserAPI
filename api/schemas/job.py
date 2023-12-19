@@ -92,6 +92,7 @@ class JobReadBase(BaseModel):
     date_started: datetime.datetime | None
     date_finished: datetime.datetime | None
     status: JobStates
+    runtime_details: str | None = None
 
 
 class JobCreate(JobBase):

@@ -24,6 +24,9 @@ def update_job(
             status_code=status.HTTP_404_NOT_FOUND, detail="Job not found"
         )
     db_job.status = update.status.value
+    db_job.runtime_details = (
+        (db_job.runtime_details or "") + "\n" + update.runtime_details
+    )
     db.add(db_job)
     db.commit()
     if (
@@ -31,9 +34,12 @@ def update_job(
         and db_job.user_email
     ):
         subject = f"Job {db_job.job_name} (id={db_job.id}) {db_job.status}"
-        body = f"""This is an update for job {db_job.job_name} (id={db_job.id}).
-            The job is now {db_job.status}.\n
+        body = f"""This is an update for job '{db_job.job_name}': (id={db_job.id}).
+            Status: {db_job.status}.\n\n
+            Job run-time details:\n{db_job.runtime_details}\n\n
             If you would like not to receive such updates in the future, contact the developers.
             At the moment, the selection of whether to receive updates or not is not supported.
-        """
+        """.replace(
+            "\n", "<br>"
+        )
         email_sender.send_email(to=db_job.user_email, subject=subject, body=body)

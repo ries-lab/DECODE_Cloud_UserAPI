@@ -1,6 +1,7 @@
 import datetime
 import enum
-from sqlalchemy import Column, Integer, String, Enum, DateTime, JSON, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Enum, DateTime, JSON, Text
+from sqlalchemy import UniqueConstraint
 
 from api.database import Base
 
@@ -38,6 +39,7 @@ class Job(Base):
     status = Column(
         String, Enum(JobStates), nullable=False, default=JobStates.queued.value
     )
+    runtime_details = Column(Text, nullable=True)
     environment = Column(Enum(EnvironmentTypes))
     priority = Column(Integer, nullable=False, default=0)
     application = Column(JSON, nullable=False)
