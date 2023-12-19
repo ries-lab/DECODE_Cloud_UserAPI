@@ -4,21 +4,27 @@ from fastapi import HTTPException
 
 
 class EmailSender(abc.ABC):
+    """Abstract email sender for user notifications."""
+
     @abc.abstractmethod
     def send_email(self, to: str, subject: str, body: str):
         raise NotImplementedError()
 
 
 class DummyEmailSender(EmailSender):
+    """Dummy email sender for testing and when notifications are not required."""
+
     def send_email(self, to: str, subject: str, body: str):
         pass
 
 
 class MailjetEmailSender(EmailSender):
-    def __init__(self, api_key, api_secret, sender_address):
+    """Email sender using Mailjet."""
+
+    def __init__(self, api_key, secret_key, sender_address):
         import mailjet_rest
 
-        self.mailjet = mailjet_rest.Client(auth=(api_key, api_secret), version="v3.1")
+        self.mailjet = mailjet_rest.Client(auth=(api_key, secret_key), version="v3.1")
         self.sender_address = sender_address
 
     def send_email(self, to: str, subject: str, body: str):

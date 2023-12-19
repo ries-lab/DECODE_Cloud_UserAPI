@@ -3,6 +3,8 @@ import pytest
 import shutil
 import dotenv
 
+from api.core import notifications
+
 # At import the database is directly created, so need to set this first
 dotenv.load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 rel_test_db_path = "./test_app.db"
@@ -11,7 +13,7 @@ os.environ["DATABASE_URL"] = f"sqlite:///{rel_test_db_path}"
 from io import BytesIO
 
 import api.database
-from api import notifications, settings
+from api import settings
 from api.core.filesystem import get_user_filesystem
 from api.main import app
 from api.models import Job
@@ -21,6 +23,7 @@ from api.dependencies import (
     filesystem_dep,
     APIKeyDependency,
     workerfacing_api_auth_dep,
+    email_sender_dep,
 )
 
 
@@ -176,10 +179,10 @@ def override_internal_api_key_secret(monkeypatch_module):
 
 @pytest.fixture(scope="module", autouse=True)
 def override_email_sender(monkeypatch_module):
-    monkeypatch_module.setattr(
-        settings,
-        "email_sender",
-        notifications.DummyEmailSender(),
+    monkeypatch_module.setitem(
+        app.dependency_overrides,
+        email_sender_dep,
+        lambda: notifications.DummyEmailSender(),
     )
 
 

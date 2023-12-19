@@ -1,19 +1,23 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+import api.core.notifications as notifications
 import api.crud.job as job_crud
 import api.database as database
-from api import settings
 from api.models import JobStates
 from api.schemas.job_update import JobUpdate
-from api.dependencies import workerfacing_api_auth_dep
+from api.dependencies import workerfacing_api_auth_dep, email_sender_dep
 
 
 router = APIRouter(dependencies=[Depends(workerfacing_api_auth_dep)])
 
 
 @router.put("/_job_status", status_code=204)
-def update_job(update: JobUpdate, db: Session = Depends(database.get_db)):
+def update_job(
+    update: JobUpdate,
+    db: Session = Depends(database.get_db),
+    email_sender: notifications.EmailSender = Depends(email_sender_dep),
+):
     db_job = job_crud.get_job(db, update.job_id)
     if db_job is None:
         raise HTTPException(
@@ -32,6 +36,4 @@ def update_job(update: JobUpdate, db: Session = Depends(database.get_db)):
             If you would like not to receive such updates in the future, contact the developers.
             At the moment, the selection of whether to receive updates or not is not supported.
         """
-        settings.email_sender.send_email(
-            to=db_job.user_email, subject=subject, body=body
-        )
+        email_sender.send_email(to=db_job.user_email, subject=subject, body=body)

@@ -28,4 +28,4 @@ register_exception_handlers(app)
 
 @app.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Welcome to the DECODE OpenCloud User-facing API"}

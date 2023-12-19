@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 from unittest.mock import MagicMock
 from tests.conftest import internal_api_key_secret
+from api.dependencies import email_sender_dep
 from api.main import app
 from api.models import Job
 import api.database
@@ -38,7 +39,11 @@ def test_job_status_update(jobs):
 def test_finished_notification(jobs, monkeypatch):
     mock_email_sender = MagicMock()
     mock_email_sender.send_email = MagicMock()
-    monkeypatch.setattr(api.settings, "email_sender", mock_email_sender)
+    monkeypatch.setitem(
+        app.dependency_overrides,
+        email_sender_dep,
+        lambda: mock_email_sender,
+    )
     client.put(
         endpoint,
         json={"job_id": jobs[0].id, "status": "finished"},

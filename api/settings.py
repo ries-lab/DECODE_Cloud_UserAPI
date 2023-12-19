@@ -3,10 +3,9 @@ import os
 import yaml
 from typing import Any
 
-from api import notifications
-
 
 def _load_possibly_aws_secret(name: str) -> str | None:
+    """Load environment variable and read password if it is a secret from AWS Secrets Manager."""
     value = os.environ.get(name)
     try:
         return json.loads(value)["password"]  # AWS Secrets Manager
@@ -43,20 +42,9 @@ cognito_public_client_id = os.environ.get("COGNITO_PUBLIC_CLIENT_ID")
 
 # Email sender
 email_sender_service = os.environ["EMAIL_SENDER_SERVICE"]
-
-match email_sender_service:
-    case None:
-        email_sender = notifications.DummyEmailSender()
-    case "mailjet":
-        email_sender = notifications.MailjetEmailSender(
-            api_key=_load_possibly_aws_secret("EMAIL_SENDER_API_KEY"),
-            api_secret=_load_possibly_aws_secret("EMAIL_SENDER_SECRET_KEY"),
-            sender_address=os.environ["EMAIL_SENDER_ADDRESS"],
-        )
-    case _:
-        raise ValueError(
-            f"Unknown email sender service {email_sender_service}. Only mailjet is supported."
-        )
+email_sender_api_key = os.environ.get("EMAIL_SENDER_API_KEY")
+email_sender_secret_key = os.environ.get("EMAIL_SENDER_SECRET_KEY")
+email_sender_address = os.environ.get("EMAIL_SENDER_ADDRESS")
 
 
 # Config
@@ -67,6 +55,8 @@ application_config_file = os.environ.get(
 
 
 class JITConfig(object):
+    """Configuration that is re-read from file on every access."""
+
     def __getattribute__(self, __name: str) -> Any:
         with open(application_config_file) as f:
             config = yaml.safe_load(f)

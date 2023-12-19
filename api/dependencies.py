@@ -4,15 +4,19 @@ from fastapi_cloudauth.cognito import CognitoCurrentUser, CognitoClaims
 from pydantic import Field
 
 from api.core.filesystem import get_user_filesystem
-from api.settings import cognito_client_id, cognito_region, cognito_user_pool_id
-from api.settings import internal_api_key_secret
+from api.core import notifications
+from api import settings
 
 
 class GroupClaims(CognitoClaims):
+    """CognitoClaims with added groups claim."""
+
     cognito_groups: list[str] | None = Field(alias="cognito:groups")
 
 
 class UserGroupCognitoCurrentUser(CognitoCurrentUser):
+    """Check membership in the 'users' group and add group membership information."""
+
     user_info = GroupClaims
 
     async def call(self, http_auth):
@@ -25,23 +29,28 @@ class UserGroupCognitoCurrentUser(CognitoCurrentUser):
 
 
 current_user_dep = UserGroupCognitoCurrentUser(
-    region=cognito_region, userPoolId=cognito_user_pool_id, client_id=cognito_client_id
+    region=settings.cognito_region,
+    userPoolId=settings.cognito_user_pool_id,
+    client_id=settings.cognito_client_id,
 )
 
 
 async def current_user_global_dep(
     request: Request, current_user: CognitoClaims = Depends(current_user_dep)
 ):
+    """Check authentication and add user information."""
     request.state.current_user = current_user
     return current_user
 
 
 async def filesystem_dep(current_user: CognitoClaims = Depends(current_user_dep)):
+    """Get the user's filesystem."""
     return get_user_filesystem(current_user.username)
 
 
 class APIKeyDependency:
     def __init__(self, key: str):
+        """Check API-internal key."""
         self.key = key
 
     def __call__(self, x_api_key: typing.Optional[str] = Header(...)):
@@ -50,4 +59,22 @@ class APIKeyDependency:
         return x_api_key
 
 
-workerfacing_api_auth_dep = APIKeyDependency(internal_api_key_secret)
+workerfacing_api_auth_dep = APIKeyDependency(settings.internal_api_key_secret)
+
+
+async def email_sender_dep():
+    """Get the email sender."""
+    service = settings.email_sender_service
+    match service:
+        case None:
+            return notifications.DummyEmailSender()
+        case "mailjet":
+            return notifications.MailjetEmailSender(
+                api_key=settings.email_sender_api_key,
+                secret_key=settings.email_sender_secret_key,
+                sender_address=settings.email_sender_address,
+            )
+        case _:
+            raise ValueError(
+                f"Unknown email sender service {service}. Only mailjet is supported."
+            )
