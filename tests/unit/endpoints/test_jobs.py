@@ -8,12 +8,11 @@ from tests.conftest import (
     config_files,
     example_app,
     example_attrs,
-    monkeypatch_module,
     test_username,
     env,
 )
 from unittest.mock import MagicMock
-from api.queue import get_enqueueing_function
+from api.dependencies import enqueueing_function_dep
 from api.main import app
 from api.models import Job
 import api.database
@@ -24,11 +23,11 @@ endpoint = "/jobs"
 
 
 @pytest.fixture(scope="function")
-def enqueuing_func(monkeypatch_module):
+def enqueuing_func(monkeypatch):
     mock_enqueueing_function = MagicMock()
-    monkeypatch_module.setitem(
+    monkeypatch.setitem(
         app.dependency_overrides,
-        get_enqueueing_function,
+        enqueueing_function_dep,
         lambda: mock_enqueueing_function,
     )
     return mock_enqueueing_function

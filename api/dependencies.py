@@ -1,11 +1,14 @@
+import requests
 import typing
 from fastapi import Request, Depends, Header, HTTPException
+from fastapi.encoders import jsonable_encoder
 from fastapi_cloudauth.cognito import CognitoCurrentUser, CognitoClaims
 from pydantic import Field
 
+from api import settings
 from api.core.filesystem import get_user_filesystem
 from api.core import notifications
-from api import settings
+from api.schemas import QueueJob
 
 
 class GroupClaims(CognitoClaims):
@@ -78,3 +81,19 @@ async def email_sender_dep():
             raise ValueError(
                 f"Unknown email sender service {service}. Only mailjet is supported."
             )
+
+
+async def enqueueing_function_dep() -> callable:
+    def enqueue(queue_item: QueueJob) -> None:
+        resp = requests.post(
+            url=f"{settings.workerfacing_api_url}/_jobs",
+            json=jsonable_encoder(queue_item),
+            headers={"x-api-key": settings.internal_api_key_secret},
+        )
+        if resp.status_code != 200:
+            raise HTTPException(
+                status_code=resp.status_code,
+                detail=f"Error while enqueuing job {queue_item.job_id}. Traceback: \n{resp.text}.",
+            )
+
+    return enqueue

@@ -4,8 +4,7 @@ from typing import Any
 
 import api.database as database
 from api.crud import job as crud
-from api.dependencies import current_user_global_dep
-from api.queue import get_enqueueing_function
+from api.dependencies import current_user_global_dep, enqueueing_function_dep
 from api.schemas.job import Job, JobCreate
 
 
@@ -37,7 +36,7 @@ def start_job(
     request: Request,
     job: JobCreate,
     db: Any = Depends(database.get_db),
-    enqueueing_func: str = Depends(get_enqueueing_function),
+    enqueueing_func: str = Depends(enqueueing_function_dep),
 ):
     return crud.create_job(
         db,
