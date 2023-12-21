@@ -17,6 +17,7 @@ from tests.conftest import (
 )
 from fastapi.testclient import TestClient
 from api.main import app
+from api.schemas.file import FileHTTPRequest
 
 
 client = TestClient(app)
@@ -123,7 +124,9 @@ def test_post_files_happy(cleanup_files):
             "text/plain",
         )
     }
-    response = client.post(f"{endpoint}/{os.path.dirname(data_file1_name)}//upload", files=files)
+    response = client.post(
+        f"{endpoint}/{os.path.dirname(data_file1_name)}//upload", files=files
+    )
     assert response.status_code == 201
     assert response.json() == {
         "path": data_file1_name,
@@ -201,10 +204,10 @@ def test_download_file_happy(data_file1):
 def test_get_url_file_happy(data_file1):
     response = client.get(f"{endpoint}/{data_file1_name}/url")
     assert response.status_code == 200
-    assert isinstance(response.json(), str)
+    FileHTTPRequest(**response.json())  # check parsable
 
 
 def test_post_url_file_happy(data_file1):
     response = client.post(f"{endpoint}/{os.path.dirname(data_file1_name)}//url")
     assert response.status_code == 201
-    assert isinstance(response.json(), dict)
+    FileHTTPRequest(**response.json())

@@ -24,9 +24,10 @@ def update_job(
             status_code=status.HTTP_404_NOT_FOUND, detail="Job not found"
         )
     db_job.status = update.status.value
-    db_job.runtime_details = (
-        (db_job.runtime_details or "") + "\n" + update.runtime_details
-    )
+    if update.runtime_details:
+        db_job.runtime_details = (
+            (db_job.runtime_details or "") + "\n" + update.runtime_details
+        )
     db.add(db_job)
     db.commit()
     if (

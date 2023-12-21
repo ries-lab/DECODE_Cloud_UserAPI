@@ -49,7 +49,7 @@ class FileSystem(abc.ABC):
         raise NotImplementedError()
 
     def create_file_url(
-        self, path: str, request_url: str, url_endpoint: str, download_endpoint: str
+        self, path: str, request, url_endpoint: str, upload_endpoint: str
     ):
         raise NotImplementedError()
 
@@ -99,7 +99,7 @@ class FileSystem(abc.ABC):
         raise NotImplementedError()
 
     def download_url(
-        self, path: str, request_url: str, url_endpoint: str, download_endpoint: str
+        self, path: str, request, url_endpoint: str, download_endpoint: str
     ):
         raise NotImplementedError()
 
@@ -140,21 +140,19 @@ class LocalFilesystem(FileSystem):
         )
 
     def create_file(self, path, file):
-        dir_path = os.path.split(path)[0]
-        if not self.exists(dir_path):
-            os.makedirs(self.full_path(dir_path))
+        dir_path = self.full_path(os.path.join(*os.path.split(path)[:-1]))
+        os.makedirs(dir_path, exist_ok=True)
         with open(self.full_path(path), "wb") as f:
             shutil.copyfileobj(file, f)
 
     def create_file_url(
-        self, path: str, request_url: str, url_endpoint: str, download_endpoint: str
+        self, path: str, request, url_endpoint: str, upload_endpoint: str
     ):
-        if self.exists(path):
-            return {
-                "url": re.sub(url_endpoint, download_endpoint, request_url),
-                "fields": {},
-            }
-        return None
+        return {
+            "url": re.sub(url_endpoint, upload_endpoint, request.url._url),
+            "headers": {"authorization": request.headers.get("authorization")},
+            "method": "post",
+        }
 
     def delete(self, path: str, reinit_if_root: bool = True):
         if not self.exists(path):
@@ -210,10 +208,14 @@ class LocalFilesystem(FileSystem):
             return FileResponse(self.full_path(path))
 
     def download_url(
-        self, path: str, request_url: str, url_endpoint: str, download_endpoint: str
+        self, path: str, request, url_endpoint: str, download_endpoint: str
     ):
         if self.exists(path):
-            return re.sub(url_endpoint, download_endpoint, request_url)
+            return {
+                "url": re.sub(url_endpoint, download_endpoint, request.url._url),
+                "headers": {"authorization": request.headers.get("authorization")},
+                "method": "get",
+            }
         return None
 
 
@@ -272,14 +274,14 @@ class S3Filesystem(FileSystem):
         self.s3_client.upload_fileobj(file, self.bucket, self.full_path(path))
 
     def create_file_url(
-        self, path: str, request_url: str, url_endpoint: str, download_endpoint: str
+        self, path: str, request, url_endpoint: str, upload_endpoint: str
     ):
         bucket = self.bucket
         path = self.full_path(path)
         if path[-1] != "/":
             path = path + "/"
 
-        return self.s3_client.generate_presigned_post(
+        ret = self.s3_client.generate_presigned_post(
             Bucket=bucket,
             Key=path + "${filename}",
             Fields=None,
@@ -288,6 +290,7 @@ class S3Filesystem(FileSystem):
             ],  # can be used for multiple uploads to folder
             ExpiresIn=60 * 10,
         )
+        return {"url": ret["url"], "data": ret["fields"], "method": "post"}
 
     def _rename_file(self, path, new_path):
         # Rename file on S3
@@ -352,7 +355,7 @@ class S3Filesystem(FileSystem):
             return StreamingResponse(content=_get_file_content(path).iter_chunks())
 
     def download_url(
-        self, path: str, request_url: str, url_endpoint: str, download_endpoint: str
+        self, path: str, request, url_endpoint: str, download_endpoint: str
     ):
         bucket = self.bucket
         path = self.full_path(path)
@@ -361,11 +364,14 @@ class S3Filesystem(FileSystem):
 
         if not "Contents" in response:
             return None
-        return self.s3_client.generate_presigned_url(
-            "get_object",
-            Params={"Bucket": bucket, "Key": path},
-            ExpiresIn=60 * 10,
-        )
+        return {
+            "url": self.s3_client.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": bucket, "Key": path},
+                ExpiresIn=60 * 10,
+            ),
+            "method": "get",
+        }
 
 
 def get_filesystem_with_root(root_path: str):

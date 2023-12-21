@@ -17,9 +17,13 @@ def download_file(file_path: str, filesystem=Depends(filesystem_dep)):
     return ret
 
 
-@router.get("/files/{file_path:path}/url")
-def download_file_url(file_path: str, request: Request, filesystem=Depends(filesystem_dep)):
-    ret = filesystem.download_url(file_path, request.url._url, re.escape("/url") + "$", "/download")
+@router.get("/files/{file_path:path}/url", response_model=schemas.file.FileHTTPRequest)
+def download_file_url(
+    file_path: str, request: Request, filesystem=Depends(filesystem_dep)
+):
+    ret = filesystem.download_url(
+        file_path, request, re.escape("/url") + "$", "/download"
+    )
     if not ret:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return ret
@@ -64,7 +68,9 @@ def upload_file_data(
 
 
 def upload_file_url(base_path: str, request: Request, filesystem):
-    ret = filesystem.create_file_url(base_path, request.url._url, re.escape("/url") + "$", "/upload")
+    ret = filesystem.create_file_url(
+        base_path, request, re.escape("/url") + "$", "/upload"
+    )
     if not ret:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return ret
@@ -72,8 +78,8 @@ def upload_file_url(base_path: str, request: Request, filesystem):
 
 @router.post(
     "/files/config/{config_id}/{base_path:path}/url",
-    response_model=dict,
     status_code=status.HTTP_201_CREATED,
+    response_model=schemas.file.FileHTTPRequest,
 )
 def upload_file_config_url(
     config_id: str, base_path: str, request: Request, filesystem=Depends(filesystem_dep)
@@ -83,8 +89,8 @@ def upload_file_config_url(
 
 @router.post(
     "/files/data/{data_id}/{base_path:path}/url",
-    response_model=dict,
     status_code=status.HTTP_201_CREATED,
+    response_model=schemas.file.FileHTTPRequest,
 )
 def upload_file_data_url(
     data_id: str, base_path: str, request: Request, filesystem=Depends(filesystem_dep)

@@ -15,10 +15,6 @@ def enqueue_job(job: models.Job, enqueueing_func: callable):
         app["entrypoint"]
     ]
 
-    # App parameters
-    app_config = job_config["app"]
-    app = schemas.AppSpecs(cmd=app_config["cmd"], env=job.attributes["env_vars"])
-
     # Handler parameters
     handler_config = job_config["handler"]
 
@@ -52,7 +48,11 @@ def enqueue_job(job: models.Job, enqueueing_func: callable):
         files_down.update(prepare_files(data_path, "data", user_fs))
     for artifact_path in artifact_paths:
         files_down.update(prepare_files(artifact_path, "artifact", user_fs))
-    handler = schemas.HandlerSpecs(
+
+    app_specs = schemas.AppSpecs(
+        cmd=job_config["app"]["cmd"], env=job.attributes["env_vars"]
+    )
+    handler_specs = schemas.HandlerSpecs(
         image_name=app["application"],
         image_version=app["version"],
         entrypoint=app["entrypoint"],
@@ -60,8 +60,8 @@ def enqueue_job(job: models.Job, enqueueing_func: callable):
         files_down=files_down,
         files_up=handler_config["files_up"],
     )
-
-    meta = schemas.MetaSpecs(job_id=job.id, date_created=job.date_created)
+    meta_specs = schemas.MetaSpecs(job_id=job.id, date_created=job.date_created)
+    job_specs = schemas.JobSpecs(app=app_specs, handler=handler_specs, meta=meta_specs)
 
     paths_upload = {
         "output": user_fs.full_path_uri(f"output/{job.id}"),
@@ -69,7 +69,6 @@ def enqueue_job(job: models.Job, enqueueing_func: callable):
         "artifact": user_fs.full_path_uri(f"artifact/{job.id}"),
     }
 
-    job_specs = schemas.JobSpecs(app=app, handler=handler, meta=meta)
     queue_item = schemas.QueueJob(
         job=job_specs,
         environment=job.environment if job.environment else models.EnvironmentTypes.any,
