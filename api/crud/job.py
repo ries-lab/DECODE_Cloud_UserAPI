@@ -53,10 +53,10 @@ def enqueue_job(job: models.Job, enqueueing_func: callable):
     for artifact_path in artifact_paths:
         files_down.update(prepare_files(artifact_path, "artifact", user_fs))
     handler = schemas.HandlerSpecs(
+        image_name=app["application"],
+        image_version=app["version"],
+        entrypoint=app["entrypoint"],
         image_url=handler_config["image_url"],
-        aws_job_def=handler_config["aws_job_def"],
-        image_name=handler_config["image_name"],
-        image_version=handler_config["image_version"],
         files_down=files_down,
         files_up=handler_config["files_up"],
     )

@@ -201,7 +201,6 @@ def override_application_config(monkeypatch_module):
                         },
                         "handler": {
                             "image_url": "url_test",
-                            "aws_job_def": "def_test",
                             "image_name": "name_test",
                             "image_version": "version_test",
                             "files_down": {

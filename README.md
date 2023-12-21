@@ -55,14 +55,14 @@ Add entries in `application_config.yaml`, like:
         env: [<allowed_env_keys>]
       handler:
         image_url: <docker_image_url>  # local workers with docker-compose
-        aws_job_def: <aws_batch_job_definition_name>  # cloud workers
-        image_name: <image_name>  # local workers without docker-compose (e.g. using singularity)
-        image_version: <image_version>  # local workers without docker-compose (e.g. using singularity)
         files_down: {<job_data_argument>: <relative_path_in_container>}  # e.g. {config_id: config, data_ids: data, artifact_ids: artifact}
         files_up: {<job_output_data_argument>: <relative_path_in_container>}  # e.g. {log: log, artifact: model}
-        aws_resources:
-          hardware: {<batch_hw_argument>: <default_value>}  # e.g. {MEMORY: 8000, VCPU: 4, GPU: 1}
-          timeout: <timeout_value>
+      aws_resources:
+        hardware:
+          MEMORY: <default_memory>
+          VCPU: <default_vcpu>
+          GPU: <default_gpu>
+        timeout: <default_timeout>
     <entrypoint_2>:
       ...
     ...
