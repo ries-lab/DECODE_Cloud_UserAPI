@@ -9,7 +9,9 @@ from api.database import Base
 class JobStates(enum.Enum):
     queued = "queued"
     pulled = "pulled"
+    preprocessing = "preprocessing"
     running = "running"
+    postprocessing = "postprocessing"
     finished = "finished"
     error = "error"
 
