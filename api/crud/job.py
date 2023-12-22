@@ -61,7 +61,10 @@ def enqueue_job(job: models.Job, enqueueing_func: callable):
         files_up=handler_config["files_up"],
     )
     meta_specs = schemas.MetaSpecs(job_id=job.id, date_created=job.date_created)
-    job_specs = schemas.JobSpecs(app=app_specs, handler=handler_specs, meta=meta_specs)
+    hardware_specs = schemas.HardwareSpecs(**job.hardware)
+    job_specs = schemas.JobSpecs(
+        app=app_specs, handler=handler_specs, meta=meta_specs, hardware=hardware_specs
+    )
 
     paths_upload = {
         "output": user_fs.full_path_uri(f"output/{job.id}"),
@@ -72,7 +75,6 @@ def enqueue_job(job: models.Job, enqueueing_func: callable):
     queue_item = schemas.QueueJob(
         job=job_specs,
         environment=job.environment if job.environment else models.EnvironmentTypes.any,
-        hardware=job.hardware,
         group=None,  # TODO
         priority=job.priority,
         paths_upload=paths_upload,

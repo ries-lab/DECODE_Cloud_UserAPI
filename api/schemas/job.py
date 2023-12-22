@@ -133,6 +133,7 @@ class JobSpecs(BaseModel):
     app: AppSpecs
     handler: HandlerSpecs
     meta: MetaSpecs
+    hardware: HardwareSpecs
 
 
 class PathsUploadSpecs(BaseModel):
@@ -144,7 +145,6 @@ class PathsUploadSpecs(BaseModel):
 class QueueJob(BaseModel):
     job: JobSpecs
     environment: EnvironmentTypes | None = None
-    hardware: HardwareSpecs
     group: str | None = None
     priority: int | None = None
     paths_upload: PathsUploadSpecs
