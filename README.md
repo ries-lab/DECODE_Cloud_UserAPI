@@ -36,6 +36,7 @@ It sends the worker-facing API jobs started by users, and gets job updates from 
       - `COGNITO_USER_POOL_ID`: Cognito user pool ID.
       - `COGNITO_REGION`: Region for the user pool.
       - `COGNITO_SECRET`: Secret for the client. Can also be an AWS SecretsManager secret.
+    - Application config location: `APPLICATION_CONFIG_FILE` (can also be on AWS S3).
     - (Optional) Email notifications sending (only Mailjet is supported):
       - `EMAIL_SENDER_SERVICE`: Service used to send emails (can only be `mailjet`, or empty for no email notifications).
       - `EMAIL_SENDER_ADDRESS`: Address from which emails have to be sent (API key must of course have the permissions for it).

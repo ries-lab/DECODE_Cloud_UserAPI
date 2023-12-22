@@ -101,9 +101,8 @@ class S3Config(CachedConfig):
         ]
 
 
-application_config_file = os.environ.get(
-    "APPLICATION_CONFIG_FILE",
-    os.path.join(os.path.dirname(__file__), "..", "application_config.yaml"),
+application_config_file = os.environ.get("APPLICATION_CONFIG_FILE") or os.path.join(
+    os.path.dirname(__file__), "..", "application_config.yaml"
 )
 if application_config_file.startswith("s3://"):
     application_config = S3Config(application_config_file)
