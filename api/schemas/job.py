@@ -20,7 +20,7 @@ class Application(BaseModel):
 
     @validator("application")
     def application_check(cls, v, values):
-        allowed = list(settings.application_config.keys())
+        allowed = list(settings.application_config.config.keys())
         if v not in allowed:
             raise ValueError(f"Application must be one of {allowed}, not {v}.")
         return v
@@ -28,7 +28,7 @@ class Application(BaseModel):
     @validator("version")
     def version_check(cls, v, values):
         # no need to check application, since validation done in order of definition
-        allowed = list(settings.application_config[values["application"]].keys())
+        allowed = list(settings.application_config.config[values["application"]].keys())
         if v not in allowed:
             raise ValueError(f"Version must be one of {allowed}, not {v}.")
         return v
@@ -36,7 +36,9 @@ class Application(BaseModel):
     @validator("entrypoint")
     def entrypoint_check(cls, v, values):
         allowed = list(
-            settings.application_config[values["application"]][values["version"]].keys()
+            settings.application_config.config[values["application"]][
+                values["version"]
+            ].keys()
         )
         if v not in allowed:
             raise ValueError(f"Entrypoint must be one of {allowed}, not {v}.")
@@ -70,9 +72,8 @@ class JobBase(BaseModel):
         )
         version = app.version if hasattr(app, "version") else app["version"]
         entrypoint = app.entrypoint if hasattr(app, "entrypoint") else app["entrypoint"]
-        allowed = settings.application_config[application][version][entrypoint]["app"][
-            "env"
-        ]
+        config = settings.application_config.config[application][version][entrypoint]
+        allowed = config["app"]["env"]
         if not all(v_ in allowed for v_ in v.env_vars):
             raise ValueError(f"Environment variables must be in {allowed}.")
         return v

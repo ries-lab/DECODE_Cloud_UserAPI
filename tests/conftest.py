@@ -2,6 +2,7 @@ import os
 import pytest
 import shutil
 import dotenv
+from unittest.mock import Mock
 
 from api.core import notifications
 
@@ -188,36 +189,34 @@ def override_email_sender(monkeypatch_module):
 
 @pytest.fixture(scope="module", autouse=True)
 def override_application_config(monkeypatch_module):
-    monkeypatch_module.setattr(
-        settings,
-        "application_config",
-        {
-            example_app["application"]: {
-                example_app["version"]: {
-                    example_app["entrypoint"]: {
-                        "app": {
-                            "cmd": ["python", "test.py"],
-                            "env": ["TEST_ENV"],
+    application_config = Mock()
+    application_config.config = {
+        example_app["application"]: {
+            example_app["version"]: {
+                example_app["entrypoint"]: {
+                    "app": {
+                        "cmd": ["python", "test.py"],
+                        "env": ["TEST_ENV"],
+                    },
+                    "handler": {
+                        "image_url": "url_test",
+                        "image_name": "name_test",
+                        "image_version": "version_test",
+                        "files_down": {
+                            "data_ids": ["data"],
+                            "config_id": ["config"],
                         },
-                        "handler": {
-                            "image_url": "url_test",
-                            "image_name": "name_test",
-                            "image_version": "version_test",
-                            "files_down": {
-                                "data_ids": ["data"],
-                                "config_id": ["config"],
-                            },
-                            "files_up": {
-                                "output": "output",
-                                "log": "log",
-                                "artifact": "artifact",
-                            },
+                        "files_up": {
+                            "output": "output",
+                            "log": "log",
+                            "artifact": "artifact",
                         },
                     },
                 },
             },
         },
-    )
+    }
+    monkeypatch_module.setattr(settings, "application_config", application_config)
 
 
 @pytest.fixture

@@ -1,3 +1,4 @@
+import abc
 import json
 import os
 import yaml
@@ -48,24 +49,63 @@ email_sender_address = os.environ.get("EMAIL_SENDER_ADDRESS")
 
 
 # Config
+class CachedConfig(abc.ABC):
+    def __init__(self, config_path: str):
+        """Configuration that is re-read from file when the file is modified."""
+        self._config_path = config_path
+        self._config = self._read_config()
+        self._cache_date = self._read_last_modified()
+
+    @property
+    def config(self):
+        last_modified = self._read_last_modified()
+        if last_modified > self._cache_date:
+            self._config = self._read_config()
+            self._last_modified = self._read_last_modified()
+        return self._config
+
+    @abc.abstractmethod
+    def _read_config(self):
+        pass
+
+    @abc.abstractmethod
+    def _read_last_modified(self):
+        pass
+
+
+class LocalConfig(CachedConfig):
+    def _read_config(self):
+        with open(self._config_path) as f:
+            return yaml.safe_load(f)
+
+    def _read_last_modified(self):
+        return os.path.getmtime(self._config_path)
+
+
+class S3Config(CachedConfig):
+    def __init__(self, config_path: str):
+        import boto3
+
+        self._s3_client = boto3.client("s3")
+        self._bucket, self._key = config_path.split("s3://", 1)[1].split("/", 1)
+        super().__init__(config_path)
+
+    def _read_config(self):
+        return yaml.safe_load(
+            self._s3_client.get_object(Bucket=self._bucket, Key=self._key)["Body"]
+        )
+
+    def _read_last_modified(self):
+        return self._s3_client.head_object(Bucket=self._bucket, Key=self._key)[
+            "LastModified"
+        ]
+
+
 application_config_file = os.environ.get(
     "APPLICATION_CONFIG_FILE",
     os.path.join(os.path.dirname(__file__), "..", "application_config.yaml"),
 )
-
-
-class JITConfig(object):
-    """Configuration that is re-read from file on every access."""
-
-    def __getattribute__(self, __name: str) -> Any:
-        with open(application_config_file) as f:
-            config = yaml.safe_load(f)
-        if __name == "config":
-            return config
-        return getattr(config, __name)
-
-    def __getitem__(self, item):
-        return self.config[item]
-
-
-application_config = JITConfig()
+if application_config_file.startswith("s3://"):
+    application_config = S3Config(application_config_file)
+else:
+    application_config = LocalConfig(application_config_file)
