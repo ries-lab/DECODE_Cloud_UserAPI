@@ -2,7 +2,8 @@
 
 Code for the user-facing API of DECODE OpenCloud.  
 
-The user-facing API handles communication with the users. The authenticated users can:
+The user-facing API handles communication the with the users.
+The authenticated users can:
  * handle files
    * upload data or configuration
    * delete data
@@ -43,6 +44,7 @@ It sends the worker-facing API jobs started by users, and gets job updates from 
       - `EMAIL_SENDER_API_KEY`: API key to use the email sender.
       - `EMAIL_SENDER_SECRET_KEY`: API key secret to use the email sender. Can also be an AWS secret.
 3. Start the user-facing API with `uvicorn api.main:app --reload`.
+4. You can view the API documentation at `http://localhost:8000/docs`.
 
 
 ## Define runnable applications

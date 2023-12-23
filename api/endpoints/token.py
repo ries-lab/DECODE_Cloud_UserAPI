@@ -8,8 +8,10 @@ from api.settings import cognito_client_id, cognito_secret
 router = APIRouter()
 
 
-@router.post("/token", response_model=TokenResponse)
-async def token(login: TokenLogin):
+@router.post(
+    "/token", status_code=status.HTTP_201_CREATED, response_model=TokenResponse
+)
+async def get_token(login: TokenLogin):
     client = boto3.client("cognito-idp")
     try:
         # Perform the login using the email and password

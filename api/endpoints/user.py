@@ -1,5 +1,5 @@
 import boto3
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi_cloudauth.cognito import CognitoClaims
 
 from api.core.filesystem import get_user_filesystem
@@ -11,11 +11,11 @@ router = APIRouter()
 
 
 @router.get("/user", response_model=User)
-def get_user(current_user: CognitoClaims = Depends(current_user_dep)):
+def describe_current_user(current_user: CognitoClaims = Depends(current_user_dep)):
     return {"email": current_user.email, "groups": current_user.cognito_groups}
 
 
-@router.post("/user", response_model=User)
+@router.post("/user", status_code=status.HTTP_201_CREATED, response_model=User)
 def register_user(user: UserCreate):
     client = boto3.client("cognito-idp")
 

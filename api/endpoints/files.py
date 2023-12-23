@@ -9,7 +9,7 @@ from api.dependencies import current_user_global_dep, filesystem_dep
 router = APIRouter(dependencies=[Depends(current_user_global_dep)])
 
 
-@router.get("/files/{file_path:path}/download", status_code=status.HTTP_200_OK)
+@router.get("/files/{file_path:path}/download")
 def download_file(file_path: str, filesystem=Depends(filesystem_dep)):
     ret = filesystem.download(file_path)
     if not ret:
@@ -18,7 +18,7 @@ def download_file(file_path: str, filesystem=Depends(filesystem_dep)):
 
 
 @router.get("/files/{file_path:path}/url", response_model=schemas.file.FileHTTPRequest)
-def download_file_url(
+def get_download_presigned_url(
     file_path: str, request: Request, filesystem=Depends(filesystem_dep)
 ):
     ret = filesystem.download_url(
@@ -81,7 +81,7 @@ def upload_file_url(base_path: str, request: Request, filesystem):
     status_code=status.HTTP_201_CREATED,
     response_model=schemas.file.FileHTTPRequest,
 )
-def upload_file_config_url(
+def get_upload_config_presigned_url(
     config_id: str, base_path: str, request: Request, filesystem=Depends(filesystem_dep)
 ):
     return upload_file_url(f"config/{config_id}/" + base_path, request, filesystem)
@@ -92,7 +92,7 @@ def upload_file_config_url(
     status_code=status.HTTP_201_CREATED,
     response_model=schemas.file.FileHTTPRequest,
 )
-def upload_file_data_url(
+def get_upload_data_presigned_url(
     data_id: str, base_path: str, request: Request, filesystem=Depends(filesystem_dep)
 ):
     return upload_file_url(f"data/{data_id}/" + base_path, request, filesystem)

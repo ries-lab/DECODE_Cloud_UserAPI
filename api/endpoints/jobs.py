@@ -12,7 +12,7 @@ router = APIRouter(dependencies=[Depends(current_user_global_dep)])
 
 
 @router.get("/jobs", response_model=list[Job])
-def get_jobs(
+def list_jobs(
     request: Request,
     offset: int = 0,
     limit: int = 100,
@@ -22,7 +22,7 @@ def get_jobs(
 
 
 @router.get("/jobs/{job_id}", response_model=Job)
-def get_job(request: Request, job_id: int, db: Session = Depends(database.get_db)):
+def describe_job(request: Request, job_id: int, db: Session = Depends(database.get_db)):
     db_job = crud.get_job(db, job_id)
     if db_job is None or db_job.user_id != request.state.current_user.username:
         raise HTTPException(
@@ -31,7 +31,7 @@ def get_job(request: Request, job_id: int, db: Session = Depends(database.get_db
     return db_job
 
 
-@router.post("/jobs", response_description="Start job")
+@router.post("/jobs", status_code=status.HTTP_201_CREATED)
 def start_job(
     request: Request,
     job: JobCreate,

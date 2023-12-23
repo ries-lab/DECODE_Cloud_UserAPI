@@ -12,8 +12,8 @@ from api.dependencies import workerfacing_api_auth_dep, email_sender_dep
 router = APIRouter(dependencies=[Depends(workerfacing_api_auth_dep)])
 
 
-@router.put("/_job_status", status_code=204)
-def update_job(
+@router.put("/_job_status", response_model=JobStates)
+def update_job_status(
     update: JobUpdate,
     db: Session = Depends(database.get_db),
     email_sender: notifications.EmailSender = Depends(email_sender_dep),
@@ -44,3 +44,4 @@ def update_job(
             "\n", "<br>"
         )
         email_sender.send_email(to=db_job.user_email, subject=subject, body=body)
+    return update.status.value
