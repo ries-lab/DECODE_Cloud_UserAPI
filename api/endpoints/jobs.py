@@ -4,11 +4,11 @@ from typing import Any
 
 import api.database as database
 from api.crud import job as crud
-from api.dependencies import current_user_global_dep, enqueueing_function_dep
+from api.dependencies import enqueueing_function_dep
 from api.schemas.job import Job, JobCreate
 
 
-router = APIRouter(dependencies=[Depends(current_user_global_dep)])
+router = APIRouter()
 
 
 @router.get("/jobs", response_model=list[Job])

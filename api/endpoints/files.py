@@ -3,10 +3,10 @@ import re
 from fastapi import APIRouter, HTTPException, UploadFile, status, Depends, Request
 
 import api.schemas as schemas
-from api.dependencies import current_user_global_dep, filesystem_dep
+from api.dependencies import filesystem_dep
 
 
-router = APIRouter(dependencies=[Depends(current_user_global_dep)])
+router = APIRouter()
 
 
 @router.get("/files/{file_path:path}/download")

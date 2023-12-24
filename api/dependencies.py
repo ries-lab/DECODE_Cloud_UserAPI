@@ -31,11 +31,12 @@ class UserGroupCognitoCurrentUser(CognitoCurrentUser):
         return user_info
 
 
-current_user_dep = UserGroupCognitoCurrentUser(
-    region=settings.cognito_region,
-    userPoolId=settings.cognito_user_pool_id,
-    client_id=settings.cognito_client_id,
-)
+async def current_user_dep():
+    return UserGroupCognitoCurrentUser(
+        region=settings.cognito_region,
+        userPoolId=settings.cognito_user_pool_id,
+        client_id=settings.cognito_client_id,
+    )
 
 
 async def current_user_global_dep(
