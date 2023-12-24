@@ -27,19 +27,20 @@ class Application(BaseModel):
 
     @validator("version")
     def version_check(cls, v, values):
-        # no need to check application, since validation done in order of definition
-        allowed = list(settings.application_config.config[values["application"]].keys())
+        if "application" not in values:
+            return
+        allowed = settings.application_config.config[values["application"]].keys()
         if v not in allowed:
             raise ValueError(f"Version must be one of {allowed}, not {v}.")
         return v
 
     @validator("entrypoint")
     def entrypoint_check(cls, v, values):
-        allowed = list(
-            settings.application_config.config[values["application"]][
-                values["version"]
-            ].keys()
-        )
+        if "application" not in values or "version" not in values:
+            return
+        allowed = settings.application_config.config[values["application"]][
+            values["version"]
+        ].keys()
         if v not in allowed:
             raise ValueError(f"Entrypoint must be one of {allowed}, not {v}.")
         return v
@@ -66,7 +67,9 @@ class JobBase(BaseModel):
 
     @validator("attributes")
     def env_check(cls, v, values):
-        app = values["application"]
+        app = values.get("application")
+        if not app:
+            return
         application = (
             app.application if hasattr(app, "application") else app["application"]
         )
