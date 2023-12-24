@@ -1,11 +1,17 @@
 decode:
-  dev_multiphot_tar:
+  v0_10_1:
     train:
       app:
-        cmd: ["--config-dir=/files/config", "--config-name=config", "Paths.experiment=/files/model", "Paths.logging=/files/log"]
-        env: ["wandb_api_key"]
+        cmd:
+          - |
+            --calib_path="$(find /files/config -name '*.mat' | head -n 1)"
+          - |
+            --param_path="$(find /files/config -name '*.yaml' | head -n 1)"
+          - "--model_path=/files/model"
+          - "--log_path=/files/log"
+        env: []
       handler:
-        image_url: "public.ecr.aws/d2r7a3u1/decode:dev_multiphot_tar"
+        image_url: "eu-central-1.console.aws.amazon.com/ecr/repositories/private/367538675956/decode_repository_dev?region=eu-central-1"
         files_down:
           config_id: config
           data_ids: data
