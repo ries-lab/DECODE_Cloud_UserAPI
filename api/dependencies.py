@@ -90,10 +90,10 @@ async def enqueueing_function_dep() -> callable:
             json=jsonable_encoder(queue_item),
             headers={"x-api-key": settings.internal_api_key_secret},
         )
-        if resp.status_code != 200:
+        if not str(resp.status_code).startswith("2"):
             raise HTTPException(
                 status_code=resp.status_code,
-                detail=f"Error while enqueuing job {queue_item.job_id}. Traceback: \n{resp.text}.",
+                detail=f"Error while enqueuing job {queue_item.job.job_id}. Traceback: \n{resp.text}.",
             )
 
     return enqueue
