@@ -3,6 +3,7 @@ decode:
     train:
       app:
         cmd:
+          - "/docker/entrypoint.sh"
           - |
             --calib_path="$(find /files/config -name '*.mat' | head -n 1)"
           - |
@@ -11,7 +12,7 @@ decode:
           - "--log_path=/files/log"
         env: []
       handler:
-        image_url: "eu-central-1.console.aws.amazon.com/ecr/repositories/private/367538675956/decode_repository_dev?region=eu-central-1"
+        image_url: "367538675956.dkr.ecr.eu-central-1.amazonaws.com/decode_repository_dev:decode__v0_10_1"
         files_down:
           config_id: config
           data_ids: data

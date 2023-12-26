@@ -38,7 +38,6 @@ cognito_user_pool_id = os.environ.get("COGNITO_USER_POOL_ID")
 cognito_region = os.environ.get("COGNITO_REGION")
 cognito_client_id = os.environ.get("COGNITO_CLIENT_ID")
 cognito_secret = _load_possibly_aws_secret("COGNITO_SECRET")
-cognito_public_client_id = os.environ.get("COGNITO_PUBLIC_CLIENT_ID")
 
 
 # Email sender

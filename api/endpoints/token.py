@@ -15,15 +15,14 @@ async def get_token(login: TokenLogin):
     client = boto3.client("cognito-idp")
     try:
         # Perform the login using the email and password
+        auth_params = {"USERNAME": login.email, "PASSWORD": login.password}
+        if cognito_secret:
+            auth_params["SECRET_HASH"] = calculate_secret_hash(
+                login.email, cognito_client_id, cognito_secret
+            )
         response = client.initiate_auth(
             AuthFlow="USER_PASSWORD_AUTH",
-            AuthParameters={
-                "USERNAME": login.email,
-                "PASSWORD": login.password,
-                "SECRET_HASH": calculate_secret_hash(
-                    login.email, cognito_client_id, cognito_secret
-                ),
-            },
+            AuthParameters=auth_params,
             ClientId=cognito_client_id,
         )
         # Get the ID token from the response

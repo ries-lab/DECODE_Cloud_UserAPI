@@ -34,9 +34,9 @@ It sends the worker-facing API jobs started by users, and gets job updates from 
       - `INTERNAL_API_KEY_SECRET`: secret to authenticate to the worker-facing API, and for the worker-facing API to connect to this API, for internal endpoints. Can also be an AWS SecretsManager secret.
     - Authentication (only AWS Cognito is supported):
       - `COGNITO_CLIENT_ID`: Cognito client ID.
+      - `COGNITO_SECRET`: Secret for the client (if required). Can also be an AWS SecretsManager secret.
       - `COGNITO_USER_POOL_ID`: Cognito user pool ID.
       - `COGNITO_REGION`: Region for the user pool.
-      - `COGNITO_SECRET`: Secret for the client. Can also be an AWS SecretsManager secret.
     - Application config location: `APPLICATION_CONFIG_FILE` (can also be on AWS S3).
     - (Optional) Email notifications sending (only Mailjet is supported):
       - `EMAIL_SENDER_SERVICE`: Service used to send emails (can only be `mailjet`, or empty for no email notifications).
