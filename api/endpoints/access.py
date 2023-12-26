@@ -1,6 +1,6 @@
 import enum
 from fastapi import APIRouter
-from api.settings import cognito_user_pool_id, cognito_public_client_id
+from api.settings import cognito_user_pool_id
 
 router = APIRouter()
 
