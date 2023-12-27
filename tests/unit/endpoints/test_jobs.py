@@ -69,7 +69,7 @@ def test_start_job(env, enqueuing_func, data_files, config_files):
             "hardware": {},
         },
     )
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200
     assert response.json()["job_name"] == job_name
     enqueuing_func.assert_called_once()
     database = api.database.SessionLocal()

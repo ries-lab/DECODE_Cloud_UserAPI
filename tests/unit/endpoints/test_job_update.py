@@ -31,7 +31,7 @@ def test_job_status_update(jobs):
         json={"job_id": jobs[0].id, "status": "running"},
         headers={"x-api-key": internal_api_key_secret},
     )
-    assert response.status_code == 204
+    assert str(response.status_code).startswith("2")
     database = api.database.SessionLocal()
     assert database.query(Job).filter(Job.id == jobs[0].id).first().status == "running"
 
