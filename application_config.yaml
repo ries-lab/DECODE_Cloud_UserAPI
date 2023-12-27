@@ -7,7 +7,7 @@ decode:
           - |
             --calib_path="$(find /files/config -name '*.mat' | head -n 1)"
           - |
-            --param_path="$(find /files/config -name '*.yaml' | head -n 1)"
+            --param_path="$(find /files/data -name '*.yaml' | head -n 1)"
           - "--model_path=/files/model"
           - "--log_path=/files/log"
         env: []
