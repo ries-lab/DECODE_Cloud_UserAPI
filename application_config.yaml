@@ -3,7 +3,7 @@ decode:
     train:
       app:
         cmd:
-          - "/docker/entrypoint.sh"
+          - "/docker/entrypoint.sh --train"
           - |
             --calib_path="$(find /files/config -name '*.mat' | head -n 1)"
           - |
