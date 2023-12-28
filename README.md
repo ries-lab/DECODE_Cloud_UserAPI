@@ -73,4 +73,6 @@ Add entries in `application_config.yaml`, like:
     ...
   ...
 ```
-Application code should assume that all data/outputs are mounted in `/data`, i.e., the paths specified  in `files_up` and `files_down` are relative to `/data`.
+Application code should assume that all data/outputs are mounted in `/data`, i.e., the paths specified  in `files_up` and `files_down` are relative to `/data`.  
+Important note: applications should not define an ENTRYPOINT.
+This is because we want a command that maps the job's folder on EFS to `/files` BEFORE the application is started.
