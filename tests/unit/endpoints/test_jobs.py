@@ -106,3 +106,10 @@ def test_start_job_not_unique(enqueuing_func, jobs):
     )
     assert response.status_code == 409
     enqueuing_func.assert_not_called()
+
+
+def test_delete_job(jobs):
+    response = client.delete(f"{endpoint}/{jobs[0].id}")
+    assert response.status_code == 200
+    response = client.get(f"{endpoint}/{jobs[0].id}")
+    assert response.status_code == 404

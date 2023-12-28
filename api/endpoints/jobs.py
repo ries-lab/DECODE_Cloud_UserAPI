@@ -36,7 +36,7 @@ def start_job(
     request: Request,
     job: JobCreate,
     db: Any = Depends(database.get_db),
-    enqueueing_func: str = Depends(enqueueing_function_dep),
+    enqueueing_func: callable = Depends(enqueueing_function_dep),
 ):
     return crud.create_job(
         db,
@@ -45,3 +45,14 @@ def start_job(
         user_id=request.state.current_user.username,
         user_email=request.state.current_user.email,
     )
+
+
+@router.delete("/jobs/{job_id}", response_model=Job)
+def delete_job(request: Request, job_id: int, db: Session = Depends(database.get_db)):
+    db_job = crud.get_job(db, job_id)
+    if db_job is None or db_job.user_id != request.state.current_user.username:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Job not found"
+        )
+    crud.delete_job(db, db_job)
+    return db_job

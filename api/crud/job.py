@@ -134,3 +134,12 @@ def create_job(
     db.commit()
     db.refresh(db_job)
     return db_job
+
+
+def delete_job(db: Session, db_job: models.Job):
+    db.delete(db_job)
+    user_fs = get_user_filesystem(user_id=db_job.user_id)
+    for path in db_job.paths_out.values():
+        user_fs.delete(path)
+    db.commit()
+    return db_job
