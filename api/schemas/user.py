@@ -5,6 +5,7 @@ from pydantic import BaseModel
 class UserGroups(enum.Enum):
     users = "users"
     workers = "workers"
+    cloud = "cloud"
 
 
 class UserBase(BaseModel):
