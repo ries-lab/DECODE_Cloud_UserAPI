@@ -326,7 +326,9 @@ class S3Filesystem(FileSystem):
     def isdir(self, path):
         if path == "/":
             return True
-        return self.exists(path) if path.endswith("/") else False
+        if not path.endswith("/"):
+            path = path + "/"
+        return self.exists(path)
 
     def full_path_uri(self, path):
         return "s3://" + self.bucket + "/" + self.full_path(path)
