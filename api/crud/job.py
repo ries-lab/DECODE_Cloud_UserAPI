@@ -67,9 +67,9 @@ def enqueue_job(job: models.Job, enqueueing_func: callable):
     )
 
     paths_upload = {
-        "output": user_fs.full_path_uri(f"output/{job.id}"),
-        "log": user_fs.full_path_uri(f"log/{job.id}"),
-        "artifact": user_fs.full_path_uri(f"artifact/{job.id}"),
+        "output": user_fs.full_path_uri(job.paths_out["output"]),
+        "log": user_fs.full_path_uri(job.paths_out["log"]),
+        "artifact": user_fs.full_path_uri(job.paths_out["artifact"]),
     }
 
     queue_item = schemas.QueueJob(
@@ -110,7 +110,14 @@ def create_job(
     user_email: str | None = None,
 ):
     try:
-        db_job = models.Job(**job.dict(), user_id=user_id, user_email=user_email)
+        paths_out = {
+            "output": f"output/{job.job_name}",
+            "log": f"log/{job.job_name}",
+            "artifact": f"artifact/{job.job_name}",
+        }
+        db_job = models.Job(
+            **job.dict(), user_id=user_id, user_email=user_email, paths_out=paths_out
+        )
         db.add(db_job)
         db.flush()
     except IntegrityError:

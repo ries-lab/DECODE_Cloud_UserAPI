@@ -41,6 +41,7 @@ class Job(Base):
     status = Column(
         String, Enum(JobStates), nullable=False, default=JobStates.queued.value
     )
+    paths_out = Column(JSON, nullable=False)
     runtime_details = Column(Text, nullable=True)
     environment = Column(Enum(EnvironmentTypes))
     priority = Column(Integer, nullable=False, default=0)

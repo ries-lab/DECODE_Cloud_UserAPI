@@ -97,6 +97,7 @@ class JobReadBase(BaseModel):
     date_finished: datetime.datetime | None
     status: JobStates
     runtime_details: str | None = None
+    paths_out: dict[OutputEndpoints, str]
 
 
 class JobCreate(JobBase):

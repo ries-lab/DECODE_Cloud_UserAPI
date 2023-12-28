@@ -278,6 +278,7 @@ def jobs(data_files, config_files):
         application=example_app,
         attributes=example_attrs,
         hardware={},
+        paths_out={"output": "out", "log": "log", "artifact": "model"},
     )
     job2 = Job(
         id=50,
@@ -288,6 +289,7 @@ def jobs(data_files, config_files):
         application=example_app,
         attributes=example_attrs,
         hardware={},
+        paths_out={"output": "out", "log": "log", "artifact": "model"},
     )
     database = api.database.SessionLocal()
     jobs = [job1, job2]
@@ -308,6 +310,7 @@ def foreign_job(data_files, config_files):
         application=example_app,
         attributes=example_attrs,
         hardware={},
+        paths_out={"output": "out", "log": "log", "artifact": "model"},
     )
     database = api.database.SessionLocal()
     database.add(job)
