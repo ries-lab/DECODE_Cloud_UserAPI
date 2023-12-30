@@ -2,6 +2,7 @@ import os
 import re
 from fastapi import APIRouter, HTTPException, UploadFile, status, Depends, Request
 
+from api import models
 import api.schemas as schemas
 from api.dependencies import filesystem_dep
 
@@ -39,35 +40,35 @@ def list_files(
     return filesystem.list_directory(base_path, dirs=show_dirs, recursive=recursive)
 
 
-def upload_file(base_path: str, file: UploadFile, filesystem):
+@router.post(
+    "/files/{f_type}/{base_path:path}/upload",
+    response_model=schemas.File,
+    status_code=status.HTTP_201_CREATED,
+)
+def upload_file(
+    f_type: models.UploadFileTypes,
+    base_path: str,
+    file: UploadFile,
+    filesystem=Depends(filesystem_dep),
+):
+    base_path = f"{f_type.value}/" + base_path
     file_path = os.path.join(base_path, file.filename)
     filesystem.create_file(file_path, file.file)
     return filesystem.get_file_info(file_path)
 
 
 @router.post(
-    "/files/config/{config_id}/{base_path:path}/upload",
-    response_model=schemas.File,
+    "/files/{f_type}/{base_path:path}/url",
     status_code=status.HTTP_201_CREATED,
+    response_model=schemas.file.FileHTTPRequest,
 )
-def upload_file_config(
-    config_id: str, base_path: str, file: UploadFile, filesystem=Depends(filesystem_dep)
+def get_upload_presigned_url(
+    f_type: models.UploadFileTypes,
+    base_path: str,
+    request: Request,
+    filesystem=Depends(filesystem_dep),
 ):
-    return upload_file(f"config/{config_id}/" + base_path, file, filesystem)
-
-
-@router.post(
-    "/files/data/{data_id}/{base_path:path}/upload",
-    response_model=schemas.File,
-    status_code=status.HTTP_201_CREATED,
-)
-def upload_file_data(
-    data_id: str, base_path: str, file: UploadFile, filesystem=Depends(filesystem_dep)
-):
-    return upload_file(f"data/{data_id}/" + base_path, file, filesystem)
-
-
-def upload_file_url(base_path: str, request: Request, filesystem):
+    base_path = f"{f_type.value}/" + base_path
     ret = filesystem.create_file_url(
         base_path, request, re.escape("/url") + "$", "/upload"
     )
@@ -77,25 +78,15 @@ def upload_file_url(base_path: str, request: Request, filesystem):
 
 
 @router.post(
-    "/files/config/{config_id}/{base_path:path}/url",
+    "/files/{f_type}/{base_path:path}",
     status_code=status.HTTP_201_CREATED,
-    response_model=schemas.file.FileHTTPRequest,
 )
-def get_upload_config_presigned_url(
-    config_id: str, base_path: str, request: Request, filesystem=Depends(filesystem_dep)
+def create_folder(
+    f_type: models.UploadFileTypes,
+    base_path: str,
+    filesystem=Depends(filesystem_dep),
 ):
-    return upload_file_url(f"config/{config_id}/" + base_path, request, filesystem)
-
-
-@router.post(
-    "/files/data/{data_id}/{base_path:path}/url",
-    status_code=status.HTTP_201_CREATED,
-    response_model=schemas.file.FileHTTPRequest,
-)
-def get_upload_data_presigned_url(
-    data_id: str, base_path: str, request: Request, filesystem=Depends(filesystem_dep)
-):
-    return upload_file_url(f"data/{data_id}/" + base_path, request, filesystem)
+    return filesystem.create_directory(f"{f_type.value}/" + base_path)
 
 
 @router.put("/files/{file_path:path}", response_model=schemas.File)

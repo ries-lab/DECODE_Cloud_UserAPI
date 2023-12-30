@@ -11,7 +11,7 @@ from collections import namedtuple
 from fastapi.responses import FileResponse, StreamingResponse
 from pathlib import Path, PurePosixPath
 
-import api.settings as settings
+from api import models, settings
 
 
 class FileTypes(enum.Enum):
@@ -23,10 +23,15 @@ FileInfo = namedtuple("File", ["path", "type", "size"])
 
 
 class FileSystem(abc.ABC):
-    def __init__(self, root_path: str):
+    def __init__(self, root_path: str, predef_folders: list[str] | None = None):
         self.root_path = root_path
+        self._predef_folders = predef_folders or []
 
     def init(self):
+        for folder in self._predef_folders + [""]:
+            self.create_directory(folder)
+
+    def create_directory(self, path: str):
         raise NotImplementedError()
 
     def list_directory(
@@ -57,7 +62,10 @@ class FileSystem(abc.ABC):
         if not self.exists(path):
             raise FileNotFoundError(path)
         if self.isdir(path):
-            raise IsADirectoryError("Cannot rename a directory")
+            if len(list(self.list_directory(path, dirs=True))):
+                raise IsADirectoryError("Cannot rename a directory")
+            elif path.strip("/") in self._predef_folders:
+                raise IsADirectoryError("Cannot rename a predefined directory")
         return self._rename_file(path, new_name)
 
     def _rename_file(self, path: str, new_name: str):
@@ -70,6 +78,8 @@ class FileSystem(abc.ABC):
             self._delete_directory(path)
             if (path == "/" or path == "") and reinit_if_root:
                 self.init()
+            elif path.strip("/") in self._predef_folders:
+                self.create_directory(path)
         else:
             self._delete_file(path)
 
@@ -107,8 +117,8 @@ class FileSystem(abc.ABC):
 class LocalFilesystem(FileSystem):
     """A filesystem that uses the local filesystem."""
 
-    def init(self):
-        os.makedirs(self.root_path, exist_ok=True)
+    def create_directory(self, path: str):
+        os.makedirs(self.full_path(path), exist_ok=True)
 
     def _directory_contents(
         self, path: str, dirs: bool = True, recursive: bool = False
@@ -158,11 +168,6 @@ class LocalFilesystem(FileSystem):
         if not self.exists(path):
             return
         super().delete(path, reinit_if_root)
-        # Delete empty directories
-        path = path[:-1] if path.endswith("/") else path
-        dir_path = "/".join(path.split("/")[:-1])
-        if dir_path != "" and not os.listdir(self.full_path(dir_path)):
-            self.delete(dir_path)
 
     def _rename_file(self, path, new_path):
         os.rename(self.full_path(path), self.full_path(new_path))
@@ -222,13 +227,16 @@ class LocalFilesystem(FileSystem):
 class S3Filesystem(FileSystem):
     """A filesystem that uses S3."""
 
-    def __init__(self, root_path: str, s3_client, bucket):
+    def __init__(
+        self, root_path: str, s3_client, bucket, predef_folders: list[str] | None = None
+    ):
         super().__init__(root_path)
         self.s3_client = s3_client
         self.bucket = bucket
+        self._predef_folders = predef_folders or []
 
-    def init(self):
-        self.s3_client.put_object(Bucket=self.bucket, Key=self.root_path + "/")
+    def create_directory(self, path: str):
+        self.s3_client.put_object(Bucket=self.bucket, Key=self.full_path(path) + "/")
 
     def _directory_contents(
         self, path: str, dirs: bool = True, recursive: bool = False
@@ -378,11 +386,16 @@ class S3Filesystem(FileSystem):
 
 def get_filesystem_with_root(root_path: str):
     """Get the filesystem to use."""
+    predef_folders = [e.value for e in models.UploadFileTypes] + [
+        e.value for e in models.OutputEndpoints
+    ]
     if settings.filesystem == "s3":
         s3_client = boto3.client("s3")
-        return S3Filesystem(root_path, s3_client, settings.s3_bucket)
+        return S3Filesystem(
+            root_path, s3_client, settings.s3_bucket, predef_folders=predef_folders
+        )
     elif settings.filesystem == "local":
-        return LocalFilesystem(root_path)
+        return LocalFilesystem(root_path, predef_folders=predef_folders)
     else:
         raise ValueError("Invalid filesystem setting")
 

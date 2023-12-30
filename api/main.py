@@ -3,6 +3,7 @@ import dotenv
 dotenv.load_dotenv()
 
 from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
 
 from api import dependencies, settings, tags
 from api.database import engine, Base
@@ -13,6 +14,14 @@ from api.exceptions import register_exception_handlers
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(openapi_tags=tags.tags_metadata)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8080"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 app.include_router(
     files.router,
@@ -36,4 +45,4 @@ register_exception_handlers(app)
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to the DECODE OpenCloud User-facing API"}
+    return "Welcome to the DECODE OpenCloud User-facing API"

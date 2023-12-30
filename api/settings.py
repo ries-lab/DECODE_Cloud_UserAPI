@@ -41,7 +41,7 @@ cognito_secret = _load_possibly_aws_secret("COGNITO_SECRET")
 
 
 # Email sender
-email_sender_service = os.environ["EMAIL_SENDER_SERVICE"]
+email_sender_service = os.environ.get("EMAIL_SENDER_SERVICE")
 email_sender_api_key = os.environ.get("EMAIL_SENDER_API_KEY")
 email_sender_secret_key = os.environ.get("EMAIL_SENDER_SECRET_KEY")
 email_sender_address = os.environ.get("EMAIL_SENDER_ADDRESS")
