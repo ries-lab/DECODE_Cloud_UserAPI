@@ -2,7 +2,6 @@ import abc
 import json
 import os
 import yaml
-from typing import Any
 
 
 def _load_possibly_aws_secret(name: str) -> str | None:
@@ -107,3 +106,7 @@ if application_config_file.startswith("s3://"):
     application_config = S3Config(application_config_file)
 else:
     application_config = LocalConfig(application_config_file)
+
+
+# Frontend
+frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:8080")
