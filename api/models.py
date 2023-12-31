@@ -28,6 +28,12 @@ class OutputEndpoints(enum.Enum):
     artifact = "artifact"
 
 
+class UploadFileTypes(enum.Enum):
+    config = "config"
+    data = "data"
+    artifact = "artifact"
+
+
 class Job(Base):
     __tablename__ = "jobs"
 
