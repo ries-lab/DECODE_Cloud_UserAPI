@@ -6,9 +6,15 @@ import api.database as database
 from api.crud import job as crud
 from api.dependencies import enqueueing_function_dep
 from api.schemas.job import Job, JobCreate
+from api.settings import application_config
 
 
 router = APIRouter()
+
+
+@router.get("/jobs/applications")
+def list_applications():
+    return application_config.config
 
 
 @router.get("/jobs", response_model=list[Job])
@@ -18,7 +24,11 @@ def list_jobs(
     limit: int = 100,
     db: Session = Depends(database.get_db),
 ):
-    return crud.get_jobs(db, request.state.current_user.username, offset, limit)
+    return sorted(
+        crud.get_jobs(db, request.state.current_user.username, offset, limit),
+        key=lambda x: x.date_created,
+        reverse=True,
+    )
 
 
 @router.get("/jobs/{job_id}", response_model=Job)

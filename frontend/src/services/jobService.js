@@ -13,4 +13,7 @@ export default {
   async deleteJob(jobId) {
     return await axios.delete(`/jobs/${jobId}`);
   },
+  async getApplications() {
+    return await axios.get(`/jobs/applications`);
+  }
 };

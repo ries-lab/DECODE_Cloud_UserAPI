@@ -19,6 +19,9 @@ axios.interceptors.response.use(undefined, function (error) {
         store.dispatch('logOut');
         return router.push('/login')
       }
+      else {
+        return Promise.reject(error);
+      }
     }
   });
 

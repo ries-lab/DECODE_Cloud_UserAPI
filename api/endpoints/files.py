@@ -37,7 +37,10 @@ def list_files(
     recursive: bool = False,
     filesystem=Depends(filesystem_dep),
 ):
-    return filesystem.list_directory(base_path, dirs=show_dirs, recursive=recursive)
+    return sorted(
+        filesystem.list_directory(base_path, dirs=show_dirs, recursive=recursive),
+        key=lambda x: x.path,
+    )
 
 
 @router.post(

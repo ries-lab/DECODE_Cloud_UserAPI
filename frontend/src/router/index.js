@@ -5,6 +5,7 @@ import LoginView from '@/views/LoginView.vue';
 import FilesView from '@/views/FilesView.vue';
 import ProfileView from '@/views/ProfileView.vue';
 import JobsView from '@/views/JobsView.vue';
+import JobCreationView from '@/views/JobCreationView.vue';
 import store from '@/store';
 
 
@@ -40,6 +41,13 @@ const routes = [
     path: '/jobs',
     name: 'Jobs',
     component: JobsView,
+    meta: { requiresAuth: true },
+  }
+  ,
+  {
+    path: '/jobs/new',
+    name: 'JobCreation',
+    component: JobCreationView,
     meta: { requiresAuth: true },
   }
 ]

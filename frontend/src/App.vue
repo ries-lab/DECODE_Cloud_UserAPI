@@ -28,4 +28,13 @@ export default {
   padding-top: 5em;
 }
 
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+thead th {
+    text-align: left;
+}
+
 </style>
