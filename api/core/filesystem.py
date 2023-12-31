@@ -63,7 +63,7 @@ class FileSystem(abc.ABC):
             raise FileNotFoundError(path)
         if self.isdir(path):
             if len(list(self.list_directory(path, dirs=True))):
-                raise IsADirectoryError("Cannot rename a directory")
+                raise IsADirectoryError("Cannot rename a non-empty directory")
             elif path.strip("/") in self._predef_dirs:
                 raise IsADirectoryError("Cannot rename a predefined directory")
         return self._rename_file(path, new_name)

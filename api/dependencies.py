@@ -123,16 +123,15 @@ async def email_sender_dep():
 
 async def enqueueing_function_dep() -> callable:
     def enqueue(queue_item: QueueJob) -> None:
-        # resp = requests.post(
-        #     url=f"{settings.workerfacing_api_url}/_jobs",
-        #     json=jsonable_encoder(queue_item),
-        #     headers={"x-api-key": settings.internal_api_key_secret},
-        # )
-        # if not str(resp.status_code).startswith("2"):
-        #     raise HTTPException(
-        #         status_code=resp.status_code,
-        #         detail=f"Error while enqueuing job {queue_item.job.job_id}. Traceback: \n{resp.text}.",
-        #     )
-        pass
+        resp = requests.post(
+            url=f"{settings.workerfacing_api_url}/_jobs",
+            json=jsonable_encoder(queue_item),
+            headers={"x-api-key": settings.internal_api_key_secret},
+        )
+        if not str(resp.status_code).startswith("2"):
+            raise HTTPException(
+                status_code=resp.status_code,
+                detail=f"Error while enqueuing job {queue_item.job.job_id}. Traceback: \n{resp.text}.",
+            )
 
     return enqueue
