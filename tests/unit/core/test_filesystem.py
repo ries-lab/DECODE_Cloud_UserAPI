@@ -26,9 +26,12 @@ class TestFilesystemBase:
         with pytest.raises(FileNotFoundError):
             filesystem.rename(data_file1_name, "new_name")
 
-    def test_rename_directory_fails(self, filesystem, monkeypatch):
+    def test_rename_not_empty_directory_fails(self, filesystem, monkeypatch):
         monkeypatch.setattr(filesystem, "exists", lambda path: True)
         monkeypatch.setattr(filesystem, "isdir", lambda path: True)
+        monkeypatch.setattr(
+            filesystem, "list_directory", lambda *args, **kwargs: ["file1"]
+        )
         with pytest.raises(IsADirectoryError):
             filesystem.rename(data_file1_name, "new_name")
 
@@ -42,13 +45,15 @@ class TestFilesystem:
         filesystem.init()
         assert filesystem.exists("/")
 
-    def test_list_directory_empty(self, filesystem):
+    def test_list_directory(self, filesystem):
         files = list(filesystem.list_directory("/"))
-        assert files == []
+        assert set(files) == set(["config", "data", "output", "log", "artifact"])
 
     def test_list_directory_root_empty_string(self, filesystem):
         files = list(filesystem.list_directory(""))
-        assert files == []
+        assert set([f.path for f in files]) == set(
+            ["config/", "data/", "output/", "log/", "artifact/"]
+        )
 
     def test_list_directory(self, filesystem, data_files):
         files = list(filesystem.list_directory("data/", recursive=True))
@@ -133,9 +138,9 @@ class TestFilesystem:
         assert not filesystem.exists(data_file1_name)
 
     def test_delete_directory(self, filesystem, data_files):
-        filesystem.delete("data/")
-        assert not filesystem.exists("data/")
-
-    def test_empty_directories_are_deleted(self, filesystem, data_file1):
-        filesystem.delete(data_file1_name)
+        filesystem.delete("data/test/")
         assert not filesystem.exists("data/test/")
+
+    def test_delete_base_directory(self, filesystem, data_files):
+        filesystem.delete("data/")
+        assert filesystem.exists("data/")

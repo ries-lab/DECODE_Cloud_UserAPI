@@ -81,15 +81,15 @@ def get_upload_presigned_url(
 
 
 @router.post(
-    "/files/{f_type}/{base_path:path}",
+    "/files/{f_type}/{base_path:path}/",
     status_code=status.HTTP_201_CREATED,
 )
-def create_folder(
+def create_directory(
     f_type: models.UploadFileTypes,
     base_path: str,
     filesystem=Depends(filesystem_dep),
 ):
-    return filesystem.create_directory(f"{f_type.value}/" + base_path)
+    return filesystem.create_directory(f"{f_type.value}/{base_path}/")
 
 
 @router.put("/files/{file_path:path}", response_model=schemas.File)

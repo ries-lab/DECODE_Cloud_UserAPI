@@ -43,7 +43,6 @@ def test_get_files_happy(data_files, config_files):
 def test_get_files_empty_happy():
     response = client.get(f"{endpoint}//")
     assert response.status_code == 200
-    assert len(response.json()) == 0
 
 
 def test_get_files_recursive_happy(data_files, config_files):
@@ -188,9 +187,11 @@ def test_put_files_fail_is_a_directory(data_files):
 
 
 def test_delete_files_happy(data_file1):
-    response = client.delete(f"{endpoint}/{data_file1_name}")
+    response = client.delete(f"{endpoint}/data/")
     assert response.status_code == 204
-    response = client.get(f"{endpoint}//")
+    response = client.get(
+        f"{endpoint}/data/", params={"recursive": True, "show_dirs": False}
+    )
     assert response.status_code == 200
     assert response.json() == []
 

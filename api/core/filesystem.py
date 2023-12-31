@@ -23,13 +23,13 @@ FileInfo = namedtuple("File", ["path", "type", "size"])
 
 
 class FileSystem(abc.ABC):
-    def __init__(self, root_path: str, predef_folders: list[str] | None = None):
+    def __init__(self, root_path: str, predef_dirs: list[str] | None = None):
         self.root_path = root_path
-        self._predef_folders = predef_folders or []
+        self._predef_dirs = predef_dirs or []
 
     def init(self):
-        for folder in self._predef_folders + [""]:
-            self.create_directory(folder)
+        for dir in self._predef_dirs + [""]:
+            self.create_directory(dir + "/")
 
     def create_directory(self, path: str):
         raise NotImplementedError()
@@ -64,7 +64,7 @@ class FileSystem(abc.ABC):
         if self.isdir(path):
             if len(list(self.list_directory(path, dirs=True))):
                 raise IsADirectoryError("Cannot rename a directory")
-            elif path.strip("/") in self._predef_folders:
+            elif path.strip("/") in self._predef_dirs:
                 raise IsADirectoryError("Cannot rename a predefined directory")
         return self._rename_file(path, new_name)
 
@@ -78,7 +78,7 @@ class FileSystem(abc.ABC):
             self._delete_directory(path)
             if (path == "/" or path == "") and reinit_if_root:
                 self.init()
-            elif path.strip("/") in self._predef_folders:
+            elif path.strip("/") in self._predef_dirs:
                 self.create_directory(path)
         else:
             self._delete_file(path)
@@ -228,15 +228,15 @@ class S3Filesystem(FileSystem):
     """A filesystem that uses S3."""
 
     def __init__(
-        self, root_path: str, s3_client, bucket, predef_folders: list[str] | None = None
+        self, root_path: str, s3_client, bucket, predef_dirs: list[str] | None = None
     ):
         super().__init__(root_path)
         self.s3_client = s3_client
         self.bucket = bucket
-        self._predef_folders = predef_folders or []
+        self._predef_dirs = predef_dirs or []
 
     def create_directory(self, path: str):
-        self.s3_client.put_object(Bucket=self.bucket, Key=self.full_path(path) + "/")
+        self.s3_client.put_object(Bucket=self.bucket, Key=self.full_path(path))
 
     def _directory_contents(
         self, path: str, dirs: bool = True, recursive: bool = False
@@ -334,9 +334,7 @@ class S3Filesystem(FileSystem):
     def isdir(self, path):
         if path == "/":
             return True
-        if not path.endswith("/"):
-            path = path + "/"
-        return self.exists(path)
+        return self.exists(path) and path.endswith("/")
 
     def full_path_uri(self, path):
         return "s3://" + self.bucket + "/" + self.full_path(path)
@@ -386,16 +384,16 @@ class S3Filesystem(FileSystem):
 
 def get_filesystem_with_root(root_path: str):
     """Get the filesystem to use."""
-    predef_folders = [e.value for e in models.UploadFileTypes] + [
+    predef_dirs = [e.value for e in models.UploadFileTypes] + [
         e.value for e in models.OutputEndpoints
     ]
     if settings.filesystem == "s3":
         s3_client = boto3.client("s3")
         return S3Filesystem(
-            root_path, s3_client, settings.s3_bucket, predef_folders=predef_folders
+            root_path, s3_client, settings.s3_bucket, predef_dirs=predef_dirs
         )
     elif settings.filesystem == "local":
-        return LocalFilesystem(root_path, predef_folders=predef_folders)
+        return LocalFilesystem(root_path, predef_dirs=predef_dirs)
     else:
         raise ValueError("Invalid filesystem setting")
 
