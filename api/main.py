@@ -14,13 +14,14 @@ from api.exceptions import register_exception_handlers
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(openapi_tags=tags.tags_metadata)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[settings.frontend_url],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+if settings.frontend_url:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[settings.frontend_url],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
 app.include_router(
