@@ -71,8 +71,8 @@ async def get_login(user: OAuth2PasswordRequestForm = Depends()):
             httponly=True,
             max_age=1800,
             expires=1800,
-            samesite="Lax",
-            secure=False,
+            samesite=None,
+            secure=True,
         )
         return response
     except client.exceptions.NotAuthorizedException:
