@@ -1,5 +1,9 @@
 import enum
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from fastapi_cloudauth.cognito import CognitoClaims
+
+from api.dependencies import current_user_dep
+from api.schemas.user import User
 from api.settings import cognito_user_pool_id, cognito_region, cognito_client_id
 
 router = APIRouter()
@@ -18,3 +22,8 @@ def get_access_info():
             "region": cognito_region,
         },
     }
+
+
+@router.get("/user", response_model=User)
+def describe_current_user(current_user: CognitoClaims = Depends(current_user_dep)):
+    return {"email": current_user.email, "groups": current_user.cognito_groups}

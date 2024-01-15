@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api import dependencies, settings, tags
 from api.database import engine, Base
-from api.endpoints import files, token, user, jobs, job_update, access
+from api.endpoints import auth, auth_get, files, jobs, job_update
 from api.exceptions import register_exception_handlers
 
 
@@ -35,9 +35,8 @@ app.include_router(
     dependencies=[Depends(dependencies.current_user_global_dep)],
 )
 if settings.auth:
-    app.include_router(user.router, tags=["Authentication"])
-    app.include_router(token.router, tags=["Authentication"])
-app.include_router(access.router, tags=["Authentication"])
+    app.include_router(auth.router, tags=["Authentication"])
+app.include_router(auth_get.router, tags=["Authentication"])
 # private endpoint for worker-facing API
 app.include_router(job_update.router, tags=["_Internal"])
 
