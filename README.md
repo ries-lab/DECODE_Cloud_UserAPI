@@ -22,7 +22,7 @@ It sends the worker-facing API jobs started by users, and gets job updates from 
 1. Copy the `.env.example` file to a `.env` file to the root of the directory.
 2. Define the fields appropriately:
     - Deployment settings:
-      - `PROD`: whether the app is being used in production. Setting it to false enables user and token creation points for testing.
+      - `AUTH`: whether to activate the authentication endpoint.
     - Data settings:
       - `FILESYSTEM`: one of `local` or `s3`, where the data is stored.
       - `S3_BUCKET`: if `FILESYSTEM==s3`, in what bucket the data is stored.

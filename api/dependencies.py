@@ -21,37 +21,9 @@ class GroupClaims(CognitoClaims):
     cognito_groups: list[str] | None = Field(alias="cognito:groups")
 
 
-class CookieHTTPBearer(HTTPBearer):
-    async def __call__(self, request: Request) -> HTTPAuthorizationCredentials | None:
-        authorization = request.headers.get("Authorization")
-
-        # added: look for cookie too
-        if not authorization and "Authorization" in request.cookies:
-            authorization = request.cookies["Authorization"]
-
-        scheme, credentials = get_authorization_scheme_param(authorization)
-        if not (authorization and scheme and credentials):
-            if self.auto_error:
-                raise HTTPException(
-                    status_code=HTTP_403_FORBIDDEN, detail="Not authenticated"
-                )
-            else:
-                return None
-        if scheme.lower() != "bearer":
-            if self.auto_error:
-                raise HTTPException(
-                    status_code=HTTP_403_FORBIDDEN,
-                    detail="Invalid authentication credentials",
-                )
-            else:
-                return None
-        return HTTPAuthorizationCredentials(scheme=scheme, credentials=credentials)
-
-
 class UserGroupCognitoCurrentUser(CognitoCurrentUser):
     """
     Check membership in the 'users' group and add group membership information.
-    Possibly read the authentication token from a cookie.
     """
 
     user_info = GroupClaims
@@ -63,10 +35,6 @@ class UserGroupCognitoCurrentUser(CognitoCurrentUser):
                 status_code=403, detail="Not a member of the 'users' group"
             )
         return user_info
-
-    async def __call__(self, http_auth=Depends(CookieHTTPBearer(auto_error=False))):
-        # look for cookie too
-        return await super().__call__(http_auth)
 
 
 current_user_dep = UserGroupCognitoCurrentUser(

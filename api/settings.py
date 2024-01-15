@@ -14,7 +14,7 @@ def _load_possibly_aws_secret(name: str) -> str | None:
 
 
 # Stage
-prod = bool(int(os.environ.get("PROD", "0")))
+auth = bool(int(os.environ.get("AUTH", "0")))
 
 
 # Data

@@ -34,7 +34,7 @@ app.include_router(
     tags=["Jobs"],
     dependencies=[Depends(dependencies.current_user_global_dep)],
 )
-if not settings.prod:
+if settings.auth:
     app.include_router(user.router, tags=["Authentication"])
     app.include_router(token.router, tags=["Authentication"])
 app.include_router(access.router, tags=["Authentication"])
