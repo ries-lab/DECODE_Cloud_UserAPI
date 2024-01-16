@@ -26,6 +26,7 @@ class FileSystem(abc.ABC):
     def __init__(self, root_path: str, predef_dirs: list[str] | None = None):
         self.root_path = root_path
         self._predef_dirs = predef_dirs or []
+        self.init()
 
     def init(self):
         for dir in self._predef_dirs + [""]:
