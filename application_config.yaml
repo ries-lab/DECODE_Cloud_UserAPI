@@ -1,4 +1,4 @@
-decode:
+7decode:
   v0_10_1:
     train:
       app:
@@ -11,7 +11,7 @@ decode:
           - "--log_path=/files/log"
         env: []
       handler:
-        image_url: "367538675956.dkr.ecr.eu-central-1.amazonaws.com/decode_repository_dev:decode__v0_10_1"
+        image_url: "public.ecr.aws/g0e9g3b1/decode:v0_10_1"
         files_down:
           config_id: config
           data_ids: data
