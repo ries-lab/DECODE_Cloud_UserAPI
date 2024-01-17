@@ -231,10 +231,9 @@ class S3Filesystem(FileSystem):
     def __init__(
         self, root_path: str, s3_client, bucket, predef_dirs: list[str] | None = None
     ):
-        super().__init__(root_path)
         self.s3_client = s3_client
         self.bucket = bucket
-        self._predef_dirs = predef_dirs or []
+        super().__init__(root_path=root_path, predef_dirs=predef_dirs)
 
     def create_directory(self, path: str):
         self.s3_client.put_object(Bucket=self.bucket, Key=self.full_path(path))
