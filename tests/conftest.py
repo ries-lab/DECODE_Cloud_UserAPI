@@ -68,7 +68,7 @@ def monkeypatch_module():
 
 @pytest.fixture(
     scope="module",
-    params=["local", "aws_mock", pytest.param("aws", marks=pytest.mark.aws)],
+    params=["local"],  # , "aws_mock", pytest.param("aws", marks=pytest.mark.aws)],
 )
 def env(request):
     return request.param

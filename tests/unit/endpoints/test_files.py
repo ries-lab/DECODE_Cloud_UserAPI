@@ -32,24 +32,21 @@ def test_auth_required(require_auth):
     app.dependency_overrides = original_overrides
 
 
-def test_get_files_happy(data_files, config_files):
+def test_get_files_happy():
     response = client.get(f"{endpoint}//")
     assert response.status_code == 200
-    assert len(response.json()) == 2, response.text
+    assert len(response.json()) == 5, response.text
     assert {"path": "data/", "type": "directory", "size": ""} in response.json()
     assert {"path": "config/", "type": "directory", "size": ""} in response.json()
-
-
-def test_get_files_empty_happy():
-    response = client.get(f"{endpoint}//")
-    assert response.status_code == 200
-    assert len(response.json()) == 0
+    assert {"path": "artifact/", "type": "directory", "size": ""} in response.json()
+    assert {"path": "log/", "type": "directory", "size": ""} in response.json()
+    assert {"path": "output/", "type": "directory", "size": ""} in response.json()
 
 
 def test_get_files_recursive_happy(data_files, config_files):
     response = client.get(f"{endpoint}//", params={"recursive": True})
     assert response.status_code == 200
-    assert len(response.json()) == 8
+    assert len(response.json()) == 11
     assert {
         "path": data_file1_name,
         "type": "file",
@@ -190,7 +187,7 @@ def test_put_files_fail_is_a_directory(data_files):
 def test_delete_files_happy(data_file1):
     response = client.delete(f"{endpoint}/{data_file1_name}")
     assert response.status_code == 204
-    response = client.get(f"{endpoint}//")
+    response = client.get(f"{endpoint}/?show_dirs=false")
     assert response.status_code == 200
     assert response.json() == []
 
