@@ -1,6 +1,6 @@
 # DECODE_Cloud_UserAPI
 
-Code for the user-facing API of DECODE OpenCloud.  
+Code for the user-facing API of ![DECODE OpenCloud](https://github.com/ries-lab/DECODE_Cloud_Documentation).  
 
 The user-facing API handles the communication with the users.
 The authenticated users can:
