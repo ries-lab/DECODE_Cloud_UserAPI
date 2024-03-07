@@ -19,7 +19,8 @@ Behind the scenes, the API communicates with the ![worker-facing API](https://gi
 When a user starts a job, it sends it to the ![worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI) and gets job updates from it.
 
 ## Run
-1. Copy the `.env.example` file to a `.env` file at the root of the directory and define its fields appropriately:
+#### Define the environment variables
+Copy the `.env.example` file to a `.env` file at the root of the directory and define its fields appropriately:
  - Deployment settings:
    - `AUTH`: whether to activate the authentication endpoints (for testing purposes).
  - Data settings:
@@ -42,12 +43,16 @@ When a user starts a job, it sends it to the ![worker-facing API](https://github
    - `EMAIL_SENDER_ADDRESS`: Address from which emails have to be sent (the API key must of course have the permissions for it).
    - `EMAIL_SENDER_API_KEY`: API key to use the email sender.
    - `EMAIL_SENDER_SECRET_KEY`: API key secret to use the email sender. Can also be the ARN of an AWS SecretsManager secret.
-2. Start the user-facing API with `uvicorn api.main:app --reload --port 8000`.
-3. You can view the API documentation at `<API_URL>/docs` (if running locally, `<API_URL>=localhost:8000`).
+
+#### Start the user-facing API
+`uvicorn api.main:app --reload --port 8000`
+
+#### View the API documentation
+You can find it at `<API_URL>/docs` (if running locally, `<API_URL>=localhost:8000`).
 
 
 ## Add/modify runnable applications
-#### Step 1: Dockerize the application
+#### Dockerize the application
 See for example ![DECODE](https://github.com/ries-lab/DECODE_Internal/blob/dockerfile_stable/Dockerfile) and ![Comet](https://github.com/nolan1999/Comet/blob/docker/Python_interface/Dockerfile).  
 The image should:
  - **Not** define an ENTRYPOINT, for technical reasons (for workers on AWS Batch, we need to prepend a command that maps the job's folder on EFS to `/files` **before** the application is started).
@@ -55,7 +60,7 @@ The image should:
  - Save its outputs separated in an output directory, an artifact directory (an example for this would be trained ML models that will be later used for predictions, e.g. in DECODE), and a logs directory. These directories are all optional.  
 Then, push the image to a public repository, e.g., using ![this command line script](https://github.com/ries-lab/DECODE_AWS_Infrastructure/blob/main/scripts/push_local_dockerimage.py). 
 
-#### Step 2: Define the application configuration for DECODE OpenCloud
+#### Define the application configuration for DECODE OpenCloud
 Add/modify entries in `application_config.yaml` (locally or on AWS S3, depending on the filesystem used), like:
 ```
 <application_i>:
@@ -119,5 +124,5 @@ Note:
  - DECODE training produces an output model, whose location is set by passing the `--model_path` argument to the Docker container (in this case, to `/files/model`). `files_up['artifact']` specifies that the worker will find the resulting artifact (the trained model) in `/files/model`.
  - In this case, there is no output data that is produced that are not logs or the output model. For this reason, there is not key `output` in `files_up`.
 
-#### Step 3: Use the new application
+#### Use the new application
 The new version configuration will be available immediately (the API reloads the application configuration when it is changed, see [the technical implementation here](./api/settings.py)).
