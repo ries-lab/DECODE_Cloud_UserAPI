@@ -23,5 +23,33 @@ decode:
         hardware:
           MEMORY: 8000
           VCPU: 4
-          # GPU: 1
+          GPU: 1
+        timeout: 18000
+
+comet:
+  latest:
+    run:
+      app:
+        cmd:
+          - "mkdir -p /files/log &&"
+          - "python -m docker_entrypoint"
+          - "--localizations_path=$(find /files/data -name '*.csv' | head -n 1)"
+          - "--param_path=$(find /files/config -name '*.yaml' | head -n 1)"
+          - "--output_path=/files/output"
+          - " > /files/log/log.log"
+        env: []
+      handler:
+        image_url: "public.ecr.aws/g0e9g3b1/comet:latest"
+        files_down:
+          config_id: config
+          data_ids: data
+          artifact_ids: artifact
+        files_up:
+          log: log
+          output: output
+      aws_resources:
+        hardware:
+          MEMORY: 16000
+          VCPU: 2
+          GPU: 1
         timeout: 18000
