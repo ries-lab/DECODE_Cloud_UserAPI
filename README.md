@@ -18,33 +18,32 @@ The authenticated users can:
 Behind the scenes, the API communicates with the ![worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI) of DECODE OpenCloud.
 When a user starts a job, it sends it to the ![worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI) and gets job updates from it.
 
-## Run instructions
-1. Copy the `.env.example` file to a `.env` file at the root of the directory.
-2. Define the fields appropriately:
-    - Deployment settings:
-      - `AUTH`: whether to activate the authentication endpoints (for testing purposes).
-    - Data settings:
-      - `FILESYSTEM`: one of `local` or `s3`, where the data is stored.
-      - `S3_BUCKET`: if `FILESYSTEM==s3`, in what bucket the data is stored.
-      - `USER_DATA_ROOT_PATH`: base path of the data storage (e.g. `../user_data` for a local filesystem, or `user_data` for S3 storage).
-      - `DATABASE_URL`: url of the database (e.g. `sqlite:///./sql_app.db` for a local database, or `postgresql://postgres:{}@<db_url>:5432/<db_name>` for a PostgreSQL database on AWS RDS).
-      - `DATABASE_SECRET`: secret to connect to the database, will be filled into the `DATABASE_URL` in place of a `{}` placeholder. Can also be the ARN of an AWS SecretsManager secret to be read.
-    - Worker-facing API:
-      - `WORKERFACING_API_URL`: url to use to connect to the ![worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI).
-      - `INTERNAL_API_KEY_SECRET`: secret to authenticate to the ![worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI), and for the ![worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI) to authenticate to this API, for internal endpoints. Can also be the ARN of an AWS SecretsManager secret.
-    - Authentication (only AWS Cognito is supported):
-      - `COGNITO_CLIENT_ID`: Cognito client ID.
-      - `COGNITO_SECRET`: Secret for the client (if required). Can also be the ARN of an AWS SecretsManager secret.
-      - `COGNITO_USER_POOL_ID`: Cognito user pool ID.
-      - `COGNITO_REGION`: Region for the user pool.
-    - Application config location: `APPLICATION_CONFIG_FILE` (either local path or S3 path).
-    - (Optional) Email notifications sending (only Mailjet is supported):
-      - `EMAIL_SENDER_SERVICE`: Service used to send emails (can only be `mailjet`, or empty for no email notifications).
-      - `EMAIL_SENDER_ADDRESS`: Address from which emails have to be sent (the API key must of course have the permissions for it).
-      - `EMAIL_SENDER_API_KEY`: API key to use the email sender.
-      - `EMAIL_SENDER_SECRET_KEY`: API key secret to use the email sender. Can also be the ARN of an AWS SecretsManager secret.
-3. Start the user-facing API with `uvicorn api.main:app --reload`.
-4. You can view the API documentation at `<API_URL>/docs` (if running locally, `<API_URL>=localhost:8000`).
+## Run
+1. Copy the `.env.example` file to a `.env` file at the root of the directory and define its fields appropriately:
+ - Deployment settings:
+   - `AUTH`: whether to activate the authentication endpoints (for testing purposes).
+ - Data settings:
+   - `FILESYSTEM`: one of `local` or `s3`, where the data is stored.
+   - `S3_BUCKET`: if `FILESYSTEM==s3`, in what bucket the data is stored.
+   - `USER_DATA_ROOT_PATH`: base path of the data storage (e.g. `../user_data` for a local filesystem, or `user_data` for S3 storage).
+   - `DATABASE_URL`: url of the database (e.g. `sqlite:///./sql_app.db` for a local database, or `postgresql://postgres:{}@<db_url>:5432/<db_name>` for a PostgreSQL database on AWS RDS).
+   - `DATABASE_SECRET`: secret to connect to the database, will be filled into the `DATABASE_URL` in place of a `{}` placeholder. Can also be the ARN of an AWS SecretsManager secret.
+ - Worker-facing API:
+   - `WORKERFACING_API_URL`: url to use to connect to the ![worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI).
+   - `INTERNAL_API_KEY_SECRET`: secret to authenticate to the ![worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI), and for the ![worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI) to authenticate to this API, for internal endpoints. Can also be the ARN of an AWS SecretsManager secret.
+ - Authentication (only AWS Cognito is supported):
+   - `COGNITO_CLIENT_ID`: Cognito client ID.
+   - `COGNITO_SECRET`: Secret for the client (if required). Can also be the ARN of an AWS SecretsManager secret.
+   - `COGNITO_USER_POOL_ID`: Cognito user pool ID.
+   - `COGNITO_REGION`: Region for the user pool.
+ - Application config location: `APPLICATION_CONFIG_FILE` (either local path or S3 path).
+ - (Optional) Email notifications sending (only Mailjet is supported):
+   - `EMAIL_SENDER_SERVICE`: Service used to send emails (can only be `mailjet`, or empty for no email notifications).
+   - `EMAIL_SENDER_ADDRESS`: Address from which emails have to be sent (the API key must of course have the permissions for it).
+   - `EMAIL_SENDER_API_KEY`: API key to use the email sender.
+   - `EMAIL_SENDER_SECRET_KEY`: API key secret to use the email sender. Can also be the ARN of an AWS SecretsManager secret.
+2. Start the user-facing API with `uvicorn api.main:app --reload --port 8000`.
+3. You can view the API documentation at `<API_URL>/docs` (if running locally, `<API_URL>=localhost:8000`).
 
 
 ## Add/modify runnable applications
