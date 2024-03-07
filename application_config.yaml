@@ -49,7 +49,7 @@ comet:
           output: output
       aws_resources:
         hardware:
-          MEMORY: 16000
-          VCPU: 2
+          MEMORY: 15000
+          VCPU: 4
           GPU: 1
         timeout: 18000
