@@ -15,8 +15,8 @@ The authenticated users can:
    * create user
    * create new login token
 
-Behind the scenes, the API communicates with the worker-facing API of DECODE OpenCloud.
-It sends the worker-facing API jobs started by users, and gets job updates from it.
+Behind the scenes, the API communicates with the ![worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI) of DECODE OpenCloud.
+It sends the ![worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI) jobs started by users, and gets job updates from it.
 
 ## Run locally
 1. Copy the `.env.example` file to a `.env` file to the root of the directory.
@@ -26,12 +26,12 @@ It sends the worker-facing API jobs started by users, and gets job updates from 
     - Data settings:
       - `FILESYSTEM`: one of `local` or `s3`, where the data is stored.
       - `S3_BUCKET`: if `FILESYSTEM==s3`, in what bucket the data is stored.
-      - `USER_DATA_ROOT_PATH`: where (folder/base path path) the data is stored. Relative paths will only work with the worker-facing API if they start with `..` and the two repositories are in the same folder.
+      - `USER_DATA_ROOT_PATH`: where (folder/base path path) the data is stored. Relative paths will only work with the ![worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI) if they start with `..` and the two repositories are in the same folder.
       - `DATABASE_URL`: url of the database (e.g. `sqlite:///./sql_app.db`).
       - `DATABASE_SECRET`: secret to connect to the database, will be filled into the `DATABASE_URL` in place of a `{}` placeholder (e.g. for PostgreSQL `postgresql://postgres:{}@url:5432/database_name`). Can also be an AWS SecretsManager secret.
     - Worker-facing API:
-      - `WORKERFACING_API_URL`: url to use to connect to the worker-facing API.
-      - `INTERNAL_API_KEY_SECRET`: secret to authenticate to the worker-facing API, and for the worker-facing API to connect to this API, for internal endpoints. Can also be an AWS SecretsManager secret.
+      - `WORKERFACING_API_URL`: url to use to connect to the ![worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI).
+      - `INTERNAL_API_KEY_SECRET`: secret to authenticate to the ![worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI), and for the ![worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI) to connect to this API, for internal endpoints. Can also be an AWS SecretsManager secret.
     - Authentication (only AWS Cognito is supported):
       - `COGNITO_CLIENT_ID`: Cognito client ID.
       - `COGNITO_SECRET`: Secret for the client (if required). Can also be an AWS SecretsManager secret.
@@ -47,8 +47,8 @@ It sends the worker-facing API jobs started by users, and gets job updates from 
 4. You can view the API documentation at `http://localhost:8000/docs`.
 
 
-## Define runnable applications
-Add entries in `application_config.yaml`, like:
+## Add/modify runnable applications
+Add/modify entries in `application_config.yaml`, like:
 ```
 <application_i>:
   <version_1>:
@@ -59,7 +59,7 @@ Add entries in `application_config.yaml`, like:
       handler:
         image_url: <docker_image_url>  # local workers with docker-compose
         files_down: {<job_data_argument>: <relative_path_in_container>}  # e.g. {config_id: config, data_ids: data, artifact_ids: artifact}
-        files_up: {<job_output_data_argument>: <relative_path_in_container>}  # e.g. {log: log, artifact: model}
+        files_up: {<job_output_data_argument>: <relative_path_in_container>}  # e.g. {log: log, artifact: model, output: output}
       aws_resources:
         hardware:
           MEMORY: <default_memory>
@@ -73,6 +73,8 @@ Add entries in `application_config.yaml`, like:
     ...
   ...
 ```
-Application code should assume that all data/outputs are mounted in `/data`, i.e., the paths specified  in `files_up` and `files_down` are relative to `/data`.  
-Important note: applications should not define an ENTRYPOINT.
-This is because we want a command that maps the job's folder on EFS to `/files` BEFORE the application is started.
+Note:  
+- Application code should assume that all data/outputs are mounted in `/files`, i.e., the paths specified  in `files_up` and `files_down` are relative to `/files`.  
+- Important note: applications should **not** define an ENTRYPOINT. This is because we want a command that maps the job's folder on EFS to `/files` **before** the application is started.
+- We typically find the input files and match them to input parameters via filename/extension. For example, DECODE v0.10 looks in `/files/data` (where the specified `data_ids` folders land) for a files with extension `.yaml` for the parameter file.
+- `aws_resources['hardware']` define the resources requested to AWS if the user does not specify hardware constraints (else, they are overridden).
