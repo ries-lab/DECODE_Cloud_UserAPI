@@ -1,6 +1,6 @@
 # DECODE_Cloud_UserAPI
 
-Code for the user-facing API of ![DECODE OpenCloud](https://github.com/ries-lab/DECODE_Cloud_Documentation).  
+Code for the user-facing API of [DECODE OpenCloud](https://github.com/ries-lab/DECODE_Cloud_Documentation).  
 
 The user-facing API handles the communication with the users.
 The authenticated users can:
@@ -15,8 +15,8 @@ The authenticated users can:
    * create user
    * create new login token
 
-Behind the scenes, the API communicates with the ![worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI) of DECODE OpenCloud.
-When a user starts a job, it sends it to the ![worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI) and gets job updates from it.
+Behind the scenes, the API communicates with the [worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI) of DECODE OpenCloud.
+When a user starts a job, it sends it to the [worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI) and gets job updates from it.
 
 ## Run
 #### Define the environment variables
@@ -30,8 +30,8 @@ Copy the `.env.example` file to a `.env` file at the root of the directory and d
    - `DATABASE_URL`: url of the database (e.g. `sqlite:///./sql_app.db` for a local database, or `postgresql://postgres:{}@<db_url>:5432/<db_name>` for a PostgreSQL database on AWS RDS).
    - `DATABASE_SECRET`: secret to connect to the database, will be filled into the `DATABASE_URL` in place of a `{}` placeholder. Can also be the ARN of an AWS SecretsManager secret.
  - Worker-facing API:
-   - `WORKERFACING_API_URL`: url to use to connect to the ![worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI).
-   - `INTERNAL_API_KEY_SECRET`: secret to authenticate to the ![worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI), and for the ![worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI) to authenticate to this API, for internal endpoints. Can also be the ARN of an AWS SecretsManager secret.
+   - `WORKERFACING_API_URL`: url to use to connect to the [worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI).
+   - `INTERNAL_API_KEY_SECRET`: secret to authenticate to the [worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI), and for the [worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI) to authenticate to this API, for internal endpoints. Can also be the ARN of an AWS SecretsManager secret.
  - Authentication (only AWS Cognito is supported):
    - `COGNITO_CLIENT_ID`: Cognito client ID.
    - `COGNITO_SECRET`: Secret for the client (if required). Can also be the ARN of an AWS SecretsManager secret.
@@ -53,12 +53,12 @@ You can find it at `<API_URL>/docs` (if running locally, `<API_URL>=localhost:80
 
 ## Add/modify runnable applications
 #### Dockerize the application
-See for example ![DECODE](https://github.com/ries-lab/DECODE_Internal/blob/dockerfile_stable/Dockerfile) and ![Comet](https://github.com/nolan1999/Comet/blob/docker/Python_interface/Dockerfile).  
+See for example [DECODE](https://github.com/ries-lab/DECODE_Internal/blob/dockerfile_stable/Dockerfile) and [Comet](https://github.com/nolan1999/Comet/blob/docker/Python_interface/Dockerfile).  
 The image should:
  - **Not** define an ENTRYPOINT, for technical reasons (for workers on AWS Batch, we need to prepend a command that maps the job's folder on EFS to `/files` **before** the application is started).
  - Have run-specific input parameters either defined in an input file (typically a `.yaml` configuration), or read from environment variables.
  - Save its outputs separated in an output directory, an artifact directory (an example for this would be trained ML models that will be later used for predictions, e.g. in DECODE), and a logs directory. These directories are all optional.  
-Then, push the image to a public repository, e.g., using ![this command line script](https://github.com/ries-lab/DECODE_AWS_Infrastructure/blob/main/scripts/push_local_dockerimage.py). 
+Then, push the image to a public repository, e.g., using [this command line script](https://github.com/ries-lab/DECODE_AWS_Infrastructure/blob/main/scripts/push_local_dockerimage.py). 
 
 #### Define the application configuration for DECODE OpenCloud
 Add/modify entries in `application_config.yaml` (locally or on AWS S3, depending on the filesystem used), like:
