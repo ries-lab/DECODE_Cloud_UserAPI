@@ -33,7 +33,7 @@ comet:
         cmd:
           - "mkdir -p /files/log &&"
           - "python -m docker_entrypoint"
-          - "--localizations_path=$(find /files/data -name '*.csv' -o -name '*.h5' | head -n 1)"
+          - "--localizations_path=$(find /files/data \( -name '*.csv' -o -name '*.h5' \) | head -n 1)"
           - "--param_path=$(find /files/config -name '*.yaml' | head -n 1)"
           - "--output_path=/files/output"
           - " > /files/log/log.log"
