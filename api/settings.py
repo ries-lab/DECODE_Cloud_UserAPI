@@ -24,6 +24,7 @@ if os.environ.get("DATABASE_SECRET"):  # set and not None
     database_url = database_url.format(database_secret)
 filesystem = os.environ.get("FILESYSTEM")
 s3_bucket = os.environ.get("S3_BUCKET")
+s3_region = os.environ.get("S3_REGION")
 user_data_root_path = os.environ.get("USER_DATA_ROOT_PATH")
 
 
@@ -81,10 +82,10 @@ class LocalConfig(CachedConfig):
 
 
 class S3Config(CachedConfig):
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, region_name: str):
         import boto3
 
-        self._s3_client = boto3.client("s3")
+        self._s3_client = boto3.client("s3", region_name=region_name)
         self._bucket, self._key = config_path.split("s3://", 1)[1].split("/", 1)
         super().__init__(config_path)
 
@@ -103,7 +104,7 @@ application_config_file = os.environ.get("APPLICATION_CONFIG_FILE") or os.path.j
     os.path.dirname(__file__), "..", "application_config.yaml"
 )
 if application_config_file.startswith("s3://"):
-    application_config = S3Config(application_config_file)
+    application_config = S3Config(application_config_file, region_name=s3_region)
 else:
     application_config = LocalConfig(application_config_file)
 

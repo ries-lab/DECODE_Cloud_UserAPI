@@ -7,6 +7,8 @@ import os
 import re
 import shutil
 import zipfile
+from botocore.client import Config
+from botocore.utils import fix_s3_host
 from collections import namedtuple
 from fastapi.responses import FileResponse, StreamingResponse
 from pathlib import Path, PurePosixPath
@@ -388,7 +390,13 @@ def get_filesystem_with_root(root_path: str):
         e.value for e in models.OutputEndpoints
     ]
     if settings.filesystem == "s3":
-        s3_client = boto3.client("s3")
+        s3_client = boto3.client(
+            "s3",
+            region_name=settings.s3_region,
+            config=Config(signature_version="v4", s3={"addressing_style": "path"}),
+        )
+        # this and config=... required to avoid DNS problems with new buckets
+        s3_client.meta.events.unregister("before-sign.s3", fix_s3_host)
         return S3Filesystem(
             root_path, s3_client, settings.s3_bucket, predef_dirs=predef_dirs
         )
