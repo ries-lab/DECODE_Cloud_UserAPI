@@ -25,6 +25,30 @@ decode:
           VCPU: 4
           GPU: 1
         timeout: 18000
+    fit:
+      app:
+        cmd:
+          - "/docker/entrypoint.sh"
+          - "--fit"
+          - "--frame_path=$(find /files/data -name '*.tif*' | head -n 1)"  # matches both .tif and .tiff
+          - "--frame_meta_path=$(find /files/config -name '*.yaml' | head -n 1)"
+          - "--model_path=$(find /files/artifact/model -type d -maxdepth 1 | head -n 1)"
+          - "--emitter_path=/files/output/emitter.h5"
+        env: []
+      handler:
+        image_url: "public.ecr.aws/g0e9g3b1/decode:v0_10_1"
+        files_down:
+          config_id: config
+          data_ids: data
+          artifact_ids: artifact
+        files_up:
+          artifact: output
+      aws_resources:
+        hardware:
+          MEMORY: 8000
+          VCPU: 4
+          GPU: 1
+        timeout: 18000
 
 comet:
   latest:
@@ -33,7 +57,7 @@ comet:
         cmd:
           - "mkdir -p /files/log &&"
           - "python -m docker_entrypoint"
-          - "--localizations_path=$(find /files/data \( -name '*.csv' -o -name '*.h5' \) | head -n 1)"
+          - "--localizations_path=$(ls /files/data/*.csv /files/data/*.h5 2>/dev/null | head -n 1)"
           - "--param_path=$(find /files/config -name '*.yaml' | head -n 1)"
           - "--output_path=/files/output"
           - " > /files/log/log.log"
