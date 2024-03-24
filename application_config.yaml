@@ -49,6 +49,34 @@ decode:
           VCPU: 4
           GPU: 1
         timeout: 18000
+  latest:
+    train:
+      app:
+        cmd:
+          - "python -m cli.config /files/config &&"
+          - "mv -r /files/config_tmp /files/config &&"
+          - "python -m cli.train"
+          - "--config_path=/files/config"
+          - "Paths.calibration=$(find /files/data -name '*_3dcal.mat' | head -n 1)"
+          - "Paths.experiment=/files/model"
+          - "Paths.logging=/files/log"
+          - "Paths.trafo=$(find /files/data -name '*_trafo.mat' | head -n 1 | grep . || echo null)"
+        env: []
+      handler:
+        image_url: "public.ecr.aws/g0e9g3b1/decode:latest"
+        files_down:
+          config_id: config_tmp
+          data_ids: data
+          artifact_ids: artifact
+        files_up:
+          log: log
+          artifact: model
+      aws_resources:
+        hardware:
+          MEMORY: 8000
+          VCPU: 4
+          GPU: 1
+        timeout: 18000
 
 comet:
   latest:
