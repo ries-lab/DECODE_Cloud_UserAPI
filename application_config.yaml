@@ -53,10 +53,11 @@ decode:
     train:
       app:
         cmd:
+          - "mkdir /files/config &&"
           - "python -m cli.config /files/config &&"
-          - "mv -r /files/config_tmp /files/config &&"
+          - "cp -r /files/config_tmp/* /files/config &&"
           - "python -m cli.train"
-          - "--config_path=/files/config"
+          - "--config-path=/files/config"
           - "Paths.calibration=$(find /files/data -name '*_3dcal.mat' | head -n 1)"
           - "Paths.experiment=/files/model"
           - "Paths.logging=/files/log"

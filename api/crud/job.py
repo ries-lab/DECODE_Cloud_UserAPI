@@ -29,9 +29,9 @@ def enqueue_job(job: models.Job, enqueueing_func: callable):
                 for f in fs.list_directory(root_in_dir, dirs=False, recursive=True)
             ]
         for in_f in in_files:
-            out_files[
-                f"{root_out}/{os.path.relpath(in_f, root_in)}"
-            ] = fs.full_path_uri(in_f)
+            out_files[f"{root_out}/{os.path.relpath(in_f, root_in)}"] = (
+                fs.full_path_uri(in_f)
+            )
         return out_files
 
     config_path = f"config/{job.attributes['files_down']['config_id']}"
@@ -43,11 +43,12 @@ def enqueue_job(job: models.Job, enqueueing_func: callable):
         for artifact_id in job.attributes["files_down"]["artifact_ids"]
     ]
     _validate_files(user_fs, [config_path] + data_paths + artifact_paths)
-    files_down = prepare_files(config_path, "config", user_fs)
+    roots_down = handler_config["files_down"]
+    files_down = prepare_files(config_path, roots_down["config_id"], user_fs)
     for data_path in data_paths:
-        files_down.update(prepare_files(data_path, "data", user_fs))
+        files_down.update(prepare_files(data_path, roots_down["data_ids"], user_fs))
     for artifact_path in artifact_paths:
-        files_down.update(prepare_files(artifact_path, "artifact", user_fs))
+        files_down.update(prepare_files(artifact_path, roots_down["artifact"], user_fs))
 
     app_specs = schemas.AppSpecs(
         cmd=job_config["app"]["cmd"], env=job.attributes["env_vars"]
