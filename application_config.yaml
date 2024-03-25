@@ -58,6 +58,7 @@ decode:
           - "cp -r /files/config_tmp/* /files/config &&"
           - "python -m cli.train"
           - "--config-path=/files/config"
+          - "--config-name=/files/config/conf_run"
           - "Paths.calibration=$(find /files/data -name '*_3dcal.mat' | head -n 1)"
           - "Paths.experiment=/files/model"
           - "Paths.logging=/files/log"
