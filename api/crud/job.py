@@ -48,7 +48,7 @@ def enqueue_job(job: models.Job, enqueueing_func: callable):
     for data_path in data_paths:
         files_down.update(prepare_files(data_path, roots_down["data_ids"], user_fs))
     for artifact_path in artifact_paths:
-        files_down.update(prepare_files(artifact_path, roots_down["artifact"], user_fs))
+        files_down.update(prepare_files(artifact_path, roots_down["artifact_ids"], user_fs))
 
     app_specs = schemas.AppSpecs(
         cmd=job_config["app"]["cmd"], env=job.attributes["env_vars"]
