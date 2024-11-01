@@ -24,10 +24,11 @@ decode:
           MEMORY: 8000
           VCPU: 4
           GPU: 1
-        timeout: 18000
+        timeout: 43200
     fit:
       app:
         cmd:
+          - "mkdir /files/output &&"
           - "/docker/entrypoint.sh"
           - "--fit"
           - "--frame_path=$(find /files/data -name '*.tif*' | head -n 1)"  # matches both .tif and .tiff
