@@ -1,11 +1,11 @@
 import os
 import re
-from fastapi import APIRouter, HTTPException, UploadFile, status, Depends, Request
+
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
 
 from api import models
-import api.schemas as schemas
 from api.dependencies import filesystem_dep
-
+from api.schemas import file as file_schemas
 
 router = APIRouter()
 
@@ -18,7 +18,7 @@ def download_file(file_path: str, filesystem=Depends(filesystem_dep)):
     return ret
 
 
-@router.get("/files/{file_path:path}/url", response_model=schemas.file.FileHTTPRequest)
+@router.get("/files/{file_path:path}/url", response_model=file_schemas.FileHTTPRequest)
 def get_download_presigned_url(
     file_path: str, request: Request, filesystem=Depends(filesystem_dep)
 ):
@@ -30,7 +30,7 @@ def get_download_presigned_url(
     return ret
 
 
-@router.get("/files/{base_path:path}", response_model=list[schemas.File])
+@router.get("/files/{base_path:path}", response_model=list[file_schemas.File])
 def list_files(
     base_path: str | None = None,
     show_dirs: bool = True,
@@ -45,7 +45,7 @@ def list_files(
 
 @router.post(
     "/files/{f_type}/{base_path:path}/upload",
-    response_model=schemas.File,
+    response_model=file_schemas.File,
     status_code=status.HTTP_201_CREATED,
 )
 def upload_file(
@@ -63,7 +63,7 @@ def upload_file(
 @router.post(
     "/files/{f_type}/{base_path:path}/url",
     status_code=status.HTTP_201_CREATED,
-    response_model=schemas.file.FileHTTPRequest,
+    response_model=file_schemas.FileHTTPRequest,
 )
 def get_upload_presigned_url(
     f_type: models.UploadFileTypes,
@@ -92,9 +92,9 @@ def create_directory(
     return filesystem.create_directory(f"{f_type.value}/{base_path}/")
 
 
-@router.put("/files/{file_path:path}", response_model=schemas.File)
+@router.put("/files/{file_path:path}", response_model=file_schemas.File)
 def rename_file(
-    file_path: str, file: schemas.FileUpdate, filesystem=Depends(filesystem_dep)
+    file_path: str, file: file_schemas.FileUpdate, filesystem=Depends(filesystem_dep)
 ):
     filesystem.rename(file_path, file.path)
     return filesystem.get_file_info(file.path)

@@ -1,15 +1,14 @@
-from tests.conftest import (
-    data_file1_name,
-    data_file2_name,
-    data_file1_contents,
-    data_file2_contents,
-    data_files,
-    data_file1,
-    user_filesystem as filesystem,
-)
-import pytest
 from io import BytesIO
-from api.core.filesystem import FileTypes, FileInfo, FileSystem
+
+import pytest
+
+from api.core.filesystem import FileInfo, FileTypes
+from tests.conftest import (
+    data_file1_contents,
+    data_file1_name,
+    data_file2_contents,
+    data_file2_name,
+)
 
 
 class TestFilesystemBase:

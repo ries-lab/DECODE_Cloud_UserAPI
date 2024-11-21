@@ -1,24 +1,20 @@
 import os
-import pytest
 from io import BytesIO
-from tests.conftest import (
-    data_file1_name,
-    data_file1_contents,
-    data_file2_name,
-    data_file2_contents,
-    config_file1_name,
-    config_file1_contents,
-    config_file2_name,
-    config_file2_contents,
-    data_files,
-    config_files,
-    cleanup_files,
-    data_file1,
-)
+
 from fastapi.testclient import TestClient
+
 from api.main import app
 from api.schemas.file import FileHTTPRequest
-
+from tests.conftest import (
+    config_file1_contents,
+    config_file1_name,
+    config_file2_contents,
+    config_file2_name,
+    data_file1_contents,
+    data_file1_name,
+    data_file2_contents,
+    data_file2_name,
+)
 
 client = TestClient(app)
 endpoint = "/files"

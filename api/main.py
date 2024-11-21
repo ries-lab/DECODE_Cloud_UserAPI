@@ -2,14 +2,13 @@ import dotenv
 
 dotenv.load_dotenv()
 
-from fastapi import FastAPI, Depends
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api import dependencies, settings, tags
-from api.database import engine, Base
-from api.endpoints import auth, auth_get, files, jobs, job_update
+from api.database import Base, engine
+from api.endpoints import auth, auth_get, files, job_update, jobs
 from api.exceptions import register_exception_handlers
-
 
 Base.metadata.create_all(bind=engine)
 

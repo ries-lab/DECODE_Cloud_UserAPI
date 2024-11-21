@@ -1,13 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from sqlalchemy.orm import Session
 from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.orm import Session
 
 import api.database as database
 from api.crud import job as crud
 from api.dependencies import enqueueing_function_dep
 from api.schemas.job import Job, JobCreate
 from api.settings import application_config
-
 
 router = APIRouter()
 

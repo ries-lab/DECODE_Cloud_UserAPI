@@ -1,22 +1,17 @@
 import copy
+from unittest.mock import MagicMock
+
 import pytest
 from fastapi.testclient import TestClient
-from tests.conftest import (
-    jobs,
-    foreign_job,
-    data_files,
-    config_files,
-    example_app,
-    example_attrs,
-    test_username,
-    env,
-)
-from unittest.mock import MagicMock
+
+import api.database
 from api.dependencies import enqueueing_function_dep
 from api.main import app
 from api.models import Job
-import api.database
-
+from tests.conftest import (
+    example_app,
+    example_attrs,
+)
 
 client = TestClient(app)
 endpoint = "/jobs"

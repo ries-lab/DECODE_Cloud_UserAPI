@@ -1,4 +1,5 @@
 import datetime
+
 from pydantic import BaseModel, validator
 
 from api import settings

@@ -1,13 +1,13 @@
 import boto3
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
 from api.core.aws import calculate_secret_hash
 from api.core.filesystem import get_user_filesystem
-from api.schemas.user import User, UserGroups
 from api.schemas.token import TokenResponse
-from api.settings import cognito_user_pool_id, cognito_client_id, cognito_secret
+from api.schemas.user import User, UserGroups
+from api.settings import cognito_client_id, cognito_secret, cognito_user_pool_id
 
 router = APIRouter()
 

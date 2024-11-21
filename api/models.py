@@ -1,7 +1,16 @@
 import datetime
 import enum
-from sqlalchemy import Column, Integer, String, Enum, DateTime, JSON, Text
-from sqlalchemy import UniqueConstraint
+
+from sqlalchemy import (
+    JSON,
+    Column,
+    DateTime,
+    Enum,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 
 from api.database import Base
 

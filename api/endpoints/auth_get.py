@@ -1,10 +1,11 @@
 import enum
+
 from fastapi import APIRouter, Depends
 from fastapi_cloudauth.cognito import CognitoClaims
 
 from api.dependencies import current_user_dep
 from api.schemas.user import User
-from api.settings import cognito_user_pool_id, cognito_region, cognito_client_id
+from api.settings import cognito_client_id, cognito_region, cognito_user_pool_id
 
 router = APIRouter()
 

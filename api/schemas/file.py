@@ -1,6 +1,7 @@
-from pydantic import BaseModel
+import enum
+from collections import namedtuple
 
-from api.core.filesystem import FileTypes
+from pydantic import BaseModel
 
 
 class FileBase(BaseModel):
@@ -9,6 +10,11 @@ class FileBase(BaseModel):
 
 class FileUpdate(FileBase):
     pass
+
+
+class FileTypes(enum.Enum):
+    file = "file"
+    directory = "directory"
 
 
 class File(FileBase):
@@ -24,3 +30,6 @@ class FileHTTPRequest(BaseModel):
     url: str
     headers: dict = {}  # thank you pydantic, for handling mutable defaults
     data: dict = {}
+
+
+FileInfo = namedtuple("File", ["path", "type", "size"])

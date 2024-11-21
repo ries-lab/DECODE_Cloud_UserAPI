@@ -1,6 +1,7 @@
 import abc
 import json
 import os
+
 import yaml
 
 
@@ -9,7 +10,7 @@ def _load_possibly_aws_secret(name: str) -> str | None:
     value = os.environ.get(name)
     try:
         return json.loads(value)["password"]  # AWS Secrets Manager
-    except:
+    except json.JSONDecodeError:
         return value
 
 
@@ -25,7 +26,7 @@ if os.environ.get("DATABASE_SECRET"):  # set and not None
 filesystem = os.environ.get("FILESYSTEM")
 s3_bucket = os.environ.get("S3_BUCKET")
 s3_region = os.environ.get("S3_REGION")
-user_data_root_path = os.environ.get("USER_DATA_ROOT_PATH")
+user_data_root_path = os.environ.get("USER_DATA_ROOT_PATH", "/data")
 
 
 # Worker-facing API

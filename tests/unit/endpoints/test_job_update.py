@@ -1,12 +1,13 @@
-from fastapi.testclient import TestClient
 from unittest.mock import MagicMock
-from tests.conftest import internal_api_key_secret
+
+from fastapi.testclient import TestClient
+
+import api.database
+import api.settings
 from api.dependencies import email_sender_dep
 from api.main import app
 from api.models import Job
-import api.database
-import api.settings
-
+from tests.conftest import internal_api_key_secret
 
 client = TestClient(app)
 endpoint = "/_job_status"

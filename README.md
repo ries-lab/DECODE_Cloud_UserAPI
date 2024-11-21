@@ -18,7 +18,25 @@ The authenticated users can:
 Behind the scenes, the API communicates with the [worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI) of DECODE OpenCloud.
 When a user starts a job, it sends it to the [worker-facing API](https://github.com/ries-lab/DECODE_Cloud_WorkerAPI) and gets job updates from it.
 
-## Run
+## Development guide
+
+### Prepare the development environment
+We use [poetry](https://python-poetry.org/) for dependency tracking.
+See online guides on how to use it, but this setup should work:
+ - `conda create -n "3-11-10" python=3.11.10`
+ - `conda activate 3-11-10`
+ - `pip install pipx`
+ - `pipx install poetry`
+ - `poetry env use /path/to/conda/env/bin/python`
+ - `poetry install`
+Afterwards, when you need a new package, use `poetry add [--group dev] <package>` to add new dependencies.
+The `--group dev` option adds the dependency only for development (e.g., pre-commit hooks, pytest, ...).
+
+Install the pre-commit hooks: `pre-commit install`.
+These currently include ruff and mypy.
+
+### Run locally
+
 #### Define the environment variables
 Copy the `.env.example` file to a `.env` file at the root of the directory and define its fields appropriately:
  - Deployment settings:
@@ -46,13 +64,27 @@ Copy the `.env.example` file to a `.env` file at the root of the directory and d
    - `EMAIL_SENDER_SECRET_KEY`: API key secret to use the email sender. Can also be the ARN of an AWS SecretsManager secret.
 
 #### Start the user-facing API
-`uvicorn api.main:app --reload --port 8000`
+`poetry run serve`
 
 #### View the API documentation
 You can find it at `<API_URL>/docs` (if running locally, `<API_URL>=localhost:8000`).
 
+#### Docker
+Alternatively, you can build a Docker image.
+For this, run `poetry run docker-build`:
+This will create a Docker image named `api:<branch_name>`.  
+To run the Docker container, use `poetry run docker-serve`.  
+To stop and delete all containers for this package, use `poetry run docker-stop`.
+If you want to additionally remove all images for this package and prune dangling images, run `poetry run docker-cleanup`.
 
-## Add/modify runnable applications
+### Tests
+Run them with `poetry run pytest`.
+
+Note that tests marked with `aws` are skipped by default, to avoid the need for an AWS setup.
+They are however ran in the GitHub Action.
+For this to work, they must have been ran once locally with an account with sufficient permissions (`poetry run pytest -m "aws"`), since for security reasons, the AWS account used on GitHub does not have permissions to create RDS instances.
+
+### Add/modify runnable applications
 #### Dockerize the application
 See for example [DECODE](https://github.com/ries-lab/DECODE_Internal/blob/dockerfile_stable/Dockerfile) and [Comet](https://github.com/nolan1999/Comet/blob/docker/Python_interface/Dockerfile).  
 The image should:

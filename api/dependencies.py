@@ -1,18 +1,15 @@
-import requests
 import typing
-from fastapi import Request, Depends, Header, HTTPException
+
+import requests
+from fastapi import Depends, Header, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from fastapi.security.utils import get_authorization_scheme_param
-from fastapi_cloudauth.cognito import CognitoCurrentUser, CognitoClaims
-from fastapi_cloudauth.messages import NOT_AUTHENTICATED
+from fastapi_cloudauth.cognito import CognitoClaims, CognitoCurrentUser
 from pydantic import Field
-from starlette.status import HTTP_403_FORBIDDEN
 
 from api import settings
-from api.core.filesystem import get_user_filesystem
 from api.core import notifications
-from api.schemas import QueueJob
+from api.core.filesystem import get_user_filesystem
+from api.schemas.job import QueueJob
 
 
 class GroupClaims(CognitoClaims):

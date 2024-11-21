@@ -4,10 +4,9 @@ from sqlalchemy.orm import Session
 import api.core.notifications as notifications
 import api.crud.job as job_crud
 import api.database as database
+from api.dependencies import email_sender_dep, workerfacing_api_auth_dep
 from api.models import JobStates
 from api.schemas.job_update import JobUpdate
-from api.dependencies import workerfacing_api_auth_dep, email_sender_dep
-
 
 router = APIRouter(dependencies=[Depends(workerfacing_api_auth_dep)])
 
@@ -40,8 +39,6 @@ def update_job_status(
             Job run-time details:\n{db_job.runtime_details}\n\n
             If you would like not to receive such updates in the future, contact the developers.
             At the moment, the selection of whether to receive updates or not is not supported.
-        """.replace(
-            "\n", "<br>"
-        )
+        """.replace("\n", "<br>")
         email_sender.send_email(to=db_job.user_email, subject=subject, body=body)
     return update.status.value

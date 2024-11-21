@@ -1,8 +1,9 @@
 import os
-import pytest
 import shutil
-import dotenv
 from unittest.mock import Mock
+
+import dotenv
+import pytest
 
 from api.core import notifications
 
@@ -16,17 +17,16 @@ from io import BytesIO
 import api.database
 from api import settings
 from api.core.filesystem import get_user_filesystem
+from api.dependencies import (
+    APIKeyDependency,
+    CognitoClaims,
+    current_user_dep,
+    email_sender_dep,
+    filesystem_dep,
+    workerfacing_api_auth_dep,
+)
 from api.main import app
 from api.models import Job
-from api.dependencies import (
-    current_user_dep,
-    CognitoClaims,
-    filesystem_dep,
-    APIKeyDependency,
-    workerfacing_api_auth_dep,
-    email_sender_dep,
-)
-
 
 data_file1_name = "data/test/data_file1.txt"
 data_file1_contents = "data file1 contents"
@@ -111,8 +111,9 @@ def base_filesystem(env, monkeypatch_module):
         from moto import mock_s3
 
         with mock_s3():
-            from api.core.filesystem import S3Filesystem
             import boto3
+
+            from api.core.filesystem import S3Filesystem
 
             s3_client = boto3.client("s3", region_name=region_name)
             s3_client.create_bucket(
@@ -122,8 +123,9 @@ def base_filesystem(env, monkeypatch_module):
             yield S3Filesystem(base_user_dir, s3_client, bucket_name)
 
     elif env == "aws":
-        from api.core.filesystem import S3Filesystem
         import boto3
+
+        from api.core.filesystem import S3Filesystem
 
         s3_client = boto3.client("s3", region_name=region_name)
         s3_client.create_bucket(
