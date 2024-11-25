@@ -5,17 +5,17 @@ import re
 import shutil
 import zipfile
 from pathlib import Path, PurePosixPath
-from typing import Any, Generator, cast
+from typing import Any, BinaryIO, Generator, cast
 
 import boto3
 import humanize
 from botocore.client import Config
 from botocore.response import StreamingBody
 from botocore.utils import fix_s3_host
+from fastapi import Request
 from fastapi.responses import FileResponse, StreamingResponse
 from mypy_boto3_s3 import S3Client
 from mypy_boto3_s3.type_defs import ObjectIdentifierTypeDef
-from requests import Request
 
 from api import models, settings
 from api.schemas.file import FileHTTPRequest, FileInfo, FileTypes
@@ -50,7 +50,7 @@ class FileSystem(abc.ABC):
     def get_file_info(self, path: str) -> FileInfo:
         raise NotImplementedError()
 
-    def create_file(self, path: str, file: io.BytesIO) -> None:
+    def create_file(self, path: str, file: BinaryIO) -> None:
         raise NotImplementedError()
 
     def create_file_url(
@@ -148,7 +148,7 @@ class LocalFilesystem(FileSystem):
             size=humanize.naturalsize(metadata.st_size) if not isdir else "",
         )
 
-    def create_file(self, path: str, file: io.BytesIO) -> None:
+    def create_file(self, path: str, file: BinaryIO) -> None:
         dir_path = self.full_path(os.path.join(*os.path.split(path)[:-1]))
         os.makedirs(dir_path, exist_ok=True)
         with open(self.full_path(path), "wb") as f:
@@ -278,7 +278,7 @@ class S3Filesystem(FileSystem):
             size=humanize.naturalsize(metadata["ContentLength"]),
         )
 
-    def create_file(self, path: str, file: io.BytesIO) -> None:
+    def create_file(self, path: str, file: BinaryIO) -> None:
         self.s3_client.upload_fileobj(file, self.bucket, self.full_path(path))
 
     def create_file_url(

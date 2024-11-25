@@ -1,6 +1,5 @@
 import os
-from datetime import datetime
-from typing import Callable, cast
+from typing import Callable
 
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
@@ -14,7 +13,7 @@ from api.schemas import job as schemas
 def enqueue_job(
     job: models.Job, enqueueing_func: Callable[[schemas.QueueJob], None]
 ) -> None:
-    user_fs = get_user_filesystem(user_id=cast(str, job.user_id))
+    user_fs = get_user_filesystem(user_id=job.user_id)
 
     app = job.application
     job_config = settings.application_config.config[app["application"]][app["version"]][
@@ -42,12 +41,11 @@ def enqueue_job(
 
     config_path = f"config/{job.attributes['files_down']['config_id']}"
     data_paths = [
-        f"data/{data_id}"
-        for data_id in cast(list[str], job.attributes["files_down"]["data_ids"])
+        f"data/{data_id}" for data_id in job.attributes["files_down"]["data_ids"]
     ]
     artifact_paths = [
         f"artifact/{artifact_id}"
-        for artifact_id in cast(list[str], job.attributes["files_down"]["artifact_ids"])
+        for artifact_id in job.attributes["files_down"]["artifact_ids"]
     ]
     _validate_files(user_fs, [config_path] + data_paths + artifact_paths)
     roots_down = handler_config["files_down"]
@@ -60,41 +58,37 @@ def enqueue_job(
         )
 
     app_specs = schemas.AppSpecs(
-        cmd=cast(list[str] | None, job_config["app"]["cmd"]),
-        env=cast(dict[str, str], job.attributes["env_vars"]),
+        cmd=job_config["app"]["cmd"],
+        env=job.attributes["env_vars"],
     )
     handler_specs = schemas.HandlerSpecs(
-        image_name=cast(str | None, app["application"]),
-        image_version=cast(str | None, app["version"]),
-        entrypoint=cast(str | None, app["entrypoint"]),
-        image_url=cast(str, handler_config["image_url"]),
-        files_down=cast(dict[str, str] | None, files_down),
-        files_up=cast(dict[models.OutputEndpoints, str], handler_config["files_up"]),
+        image_name=app["application"],
+        image_version=app["version"],
+        entrypoint=app["entrypoint"],
+        image_url=handler_config["image_url"],
+        files_down=files_down,
+        files_up=handler_config["files_up"],
     )
-    meta_specs = schemas.MetaSpecs(
-        job_id=cast(int, job.id), date_created=cast(datetime, job.date_created)
-    )
+    meta_specs = schemas.MetaSpecs(job_id=job.id, date_created=job.date_created)
     hardware_specs = schemas.HardwareSpecs(**job.hardware)
     job_specs = schemas.JobSpecs(
         app=app_specs, handler=handler_specs, meta=meta_specs, hardware=hardware_specs
     )
 
     paths_upload = {
-        "output": user_fs.full_path_uri(cast(str, job.paths_out["output"])),
-        "log": user_fs.full_path_uri(cast(str, job.paths_out["log"])),
-        "artifact": user_fs.full_path_uri(cast(str, job.paths_out["artifact"])),
+        "output": user_fs.full_path_uri(job.paths_out["output"]),
+        "log": user_fs.full_path_uri(job.paths_out["log"]),
+        "artifact": user_fs.full_path_uri(job.paths_out["artifact"]),
     }
 
     queue_item = schemas.QueueJob(
         job=job_specs,
         environment=(
-            cast(models.EnvironmentTypes, job.environment)
-            if job.environment
-            else models.EnvironmentTypes.any
+            job.environment if job.environment else models.EnvironmentTypes.any
         ),
         group=None,  # TODO
-        priority=cast(int, job.priority),
-        paths_upload=cast(schemas.PathsUploadSpecs, paths_upload),
+        priority=job.priority,
+        paths_upload=schemas.PathsUploadSpecs(**paths_upload),
     )
     enqueueing_func(queue_item)
 
@@ -118,7 +112,7 @@ def get_job(db: Session, job_id: int) -> models.Job | None:
 def _validate_files(filesystem: FileSystem, paths: list[str]) -> None:
     for _file in paths:
         if not filesystem.exists(_file):
-            raise HTTPException(status_code=400, detail=f"File {_file} does not exist")
+            raise FileNotFoundError()
 
 
 def create_job(
@@ -160,8 +154,8 @@ def create_job(
 
 def delete_job(db: Session, db_job: models.Job) -> models.Job:
     db.delete(db_job)
-    user_fs = get_user_filesystem(user_id=cast(str, db_job.user_id))
-    for path in cast(dict[str, str], db_job.paths_out).values():
+    user_fs = get_user_filesystem(user_id=db_job.user_id)
+    for path in db_job.paths_out.values():
         if path[-1] != "/":
             path += "/"
         user_fs.delete(path)
