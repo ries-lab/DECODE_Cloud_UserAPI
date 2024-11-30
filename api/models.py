@@ -43,7 +43,7 @@ class UploadFileTypes(enum.Enum):
     artifact = "artifact"
 
 
-class Job(Base):
+class Job(Base):  # type: ignore
     __tablename__ = "jobs"
 
     id = mapped_column(Integer, primary_key=True, index=True)

@@ -1,5 +1,6 @@
 import enum
 from collections import namedtuple
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -28,8 +29,8 @@ class File(FileBase):
 class FileHTTPRequest(BaseModel):
     method: str
     url: str
-    headers: dict = {}  # thank you pydantic, for handling mutable defaults
-    data: dict = {}
+    headers: dict[str, Any] = {}  # thank you pydantic, for handling mutable defaults
+    data: dict[str, Any] = {}
 
 
-FileInfo = namedtuple("File", ["path", "type", "size"])
+FileInfo = namedtuple("FileInfo", ["path", "type", "size"])

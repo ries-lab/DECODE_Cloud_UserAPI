@@ -43,5 +43,5 @@ register_exception_handlers(app)
 
 
 @app.get("/")
-async def root():
+async def root() -> str:
     return "Welcome to the DECODE OpenCloud User-facing API"

@@ -21,7 +21,7 @@ ApplicationConfig = dict[str, dict[str, dict[str, Any]]]
     description="List all available applications/versions/entrypoints",
 )
 def list_applications() -> ApplicationConfig:
-    return application_config.config  # type: ignore
+    return application_config.config
 
 
 @router.get("/jobs", response_model=list[Job], description="List all jobs")

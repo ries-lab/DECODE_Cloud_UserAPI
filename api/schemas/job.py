@@ -1,4 +1,5 @@
 import datetime
+from typing import Any
 
 from pydantic import BaseModel, validator
 
@@ -20,25 +21,25 @@ class Application(BaseModel):
     entrypoint: str
 
     @validator("application")
-    def application_check(cls, v, values):
+    def application_check(cls: "Application", v: str, values: dict[str, str]) -> str:
         allowed = list(settings.application_config.config.keys())
         if v not in allowed:
             raise ValueError(f"Application must be one of {allowed}, not {v}.")
         return v
 
     @validator("version")
-    def version_check(cls, v, values):
+    def version_check(cls: "Application", v: str, values: dict[str, str]) -> str:
         if "application" not in values:
-            return
+            raise ValueError("Application must be set before version.")
         allowed = settings.application_config.config[values["application"]].keys()
         if v not in allowed:
             raise ValueError(f"Version must be one of {allowed}, not {v}.")
         return v
 
     @validator("entrypoint")
-    def entrypoint_check(cls, v, values):
+    def entrypoint_check(cls: "Application", v: str, values: dict[str, str]) -> str:
         if "application" not in values or "version" not in values:
-            return
+            raise ValueError("Application and version must be set before entrypoint.")
         allowed = settings.application_config.config[values["application"]][
             values["version"]
         ].keys()
@@ -67,10 +68,12 @@ class JobBase(BaseModel):
     hardware: HardwareSpecs | None = None
 
     @validator("attributes")
-    def env_check(cls, v, values):
+    def env_check(
+        cls: "JobBase", v: JobAttributes, values: dict[str, Any]
+    ) -> JobAttributes:
         app = values.get("application")
         if not app:
-            return
+            raise ValueError("Application must be set before attributes.")
         application = (
             app.application if hasattr(app, "application") else app["application"]
         )
@@ -78,12 +81,12 @@ class JobBase(BaseModel):
         entrypoint = app.entrypoint if hasattr(app, "entrypoint") else app["entrypoint"]
         config = settings.application_config.config[application][version][entrypoint]
         allowed = config["app"]["env"]
-        if not all(v_ in allowed for v_ in v.env_vars):
+        if v.env_vars is not None and not all(v_ in allowed for v_ in v.env_vars):
             raise ValueError(f"Environment variables must be in {allowed}.")
         return v
 
     @validator("priority")
-    def priority_check(cls, v, values):
+    def priority_check(cls: "JobBase", v: int | None, values: dict[str, Any]) -> int:
         if v is None:
             v = 0
         elif v < 0 or v > 5:

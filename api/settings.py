@@ -1,6 +1,7 @@
 import abc
 import json
 import os
+from typing import Any, cast
 
 import yaml
 
@@ -8,8 +9,10 @@ import yaml
 def _load_possibly_aws_secret(name: str) -> str | None:
     """Load environment variable and read password if it is a secret from AWS Secrets Manager."""
     value = os.environ.get(name)
+    if not value:
+        return value
     try:
-        return json.loads(value)["password"]  # AWS Secrets Manager
+        return cast(str, json.loads(value)["password"])  # AWS Secrets Manager
     except json.JSONDecodeError:
         return value
 
@@ -57,7 +60,7 @@ class CachedConfig(abc.ABC):
         self._cache_date = self._read_last_modified()
 
     @property
-    def config(self):
+    def config(self) -> dict[str, Any]:
         last_modified = self._read_last_modified()
         if last_modified > self._cache_date:
             self._config = self._read_config()
@@ -65,20 +68,24 @@ class CachedConfig(abc.ABC):
         return self._config
 
     @abc.abstractmethod
-    def _read_config(self):
+    def _read_config(self) -> dict[str, Any]:
+        # TODO: Use pydantic to validate the config
         pass
 
     @abc.abstractmethod
-    def _read_last_modified(self):
+    def _read_last_modified(self) -> float:
         pass
 
 
 class LocalConfig(CachedConfig):
-    def _read_config(self):
+    def _read_config(self) -> dict[str, Any]:
         with open(self._config_path) as f:
-            return yaml.safe_load(f)
+            config = yaml.safe_load(f)
+        if not isinstance(config, dict):
+            raise ValueError("Config file must be a dictionary")
+        return config
 
-    def _read_last_modified(self):
+    def _read_last_modified(self) -> float:
         return os.path.getmtime(self._config_path)
 
 
@@ -90,22 +97,27 @@ class S3Config(CachedConfig):
         self._bucket, self._key = config_path.split("s3://", 1)[1].split("/", 1)
         super().__init__(config_path)
 
-    def _read_config(self):
-        return yaml.safe_load(
+    def _read_config(self) -> dict[Any, Any]:
+        config = yaml.safe_load(
             self._s3_client.get_object(Bucket=self._bucket, Key=self._key)["Body"]
         )
+        if not isinstance(config, dict):
+            raise ValueError("Config file must be a dictionary")
+        return config
 
-    def _read_last_modified(self):
+    def _read_last_modified(self) -> float:
         return self._s3_client.head_object(Bucket=self._bucket, Key=self._key)[
             "LastModified"
-        ]
+        ].timestamp()
 
 
 application_config_file = os.environ.get("APPLICATION_CONFIG_FILE") or os.path.join(
     os.path.dirname(__file__), "..", "application_config.yaml"
 )
 if application_config_file.startswith("s3://"):
-    application_config = S3Config(application_config_file, region_name=s3_region)
+    application_config: CachedConfig = S3Config(
+        application_config_file, region_name=s3_region or "eu-central-1"
+    )
 else:
     application_config = LocalConfig(application_config_file)
 
