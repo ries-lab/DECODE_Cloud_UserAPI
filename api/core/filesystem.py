@@ -169,6 +169,7 @@ class LocalFilesystem(FileSystem):
         super().delete(path, reinit_if_root)
 
     def _rename_file(self, path: str, new_path: str) -> None:
+        self.create_directory(os.path.dirname(new_path))
         os.rename(self.full_path(path), self.full_path(new_path))
 
     def _delete_file(self, path: str) -> None:

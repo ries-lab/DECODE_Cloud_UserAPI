@@ -14,6 +14,7 @@ router = APIRouter()
 
 @router.get(
     "/files/{file_path:path}/download",
+    response_model=None,
     response_class=Response,
     description="Download a file",
 )

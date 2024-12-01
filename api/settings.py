@@ -38,9 +38,9 @@ internal_api_key_secret = _load_possibly_aws_secret("INTERNAL_API_KEY_SECRET")
 
 
 # Authentication
-cognito_user_pool_id = os.environ["COGNITO_USER_POOL_ID"]
-cognito_region = os.environ["COGNITO_REGION"]
-cognito_client_id = os.environ["COGNITO_CLIENT_ID"]
+cognito_user_pool_id = os.environ.get("COGNITO_USER_POOL_ID", "")
+cognito_region = os.environ.get("COGNITO_REGION", "eu-central-1")
+cognito_client_id = os.environ.get("COGNITO_CLIENT_ID", "")
 cognito_secret = _load_possibly_aws_secret("COGNITO_SECRET")
 
 
