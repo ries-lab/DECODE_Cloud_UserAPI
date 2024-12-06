@@ -62,13 +62,16 @@ def start_job(
     db: Session = Depends(database.get_db),
     enqueueing_func: Callable[[QueueJob], None] = Depends(enqueueing_function_dep),
 ) -> Job:
-    return crud.create_job(
-        db,
-        enqueueing_func,
-        job,
-        user_id=request.state.current_user.username,
-        user_email=request.state.current_user.email,
-    )
+    try:
+        return crud.create_job(
+            db,
+            enqueueing_func,
+            job,
+            user_id=request.state.current_user.username,
+            user_email=request.state.current_user.email,
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.delete(

@@ -115,12 +115,12 @@ class _TestFilesystem(ABC):
     ) -> None:
         files = list(filesystem.list_directory("data/", recursive=True))
         assert len(files) == 2
-        assert FileInfo("data/test/", FileTypes.directory, "") in files
+        assert FileInfo(path="data/test/", type=FileTypes.directory, size="") in files
         assert (
             FileInfo(
-                data_file1_name,
-                FileTypes.file,
-                "{} Bytes".format(len(data_file1_contents)),
+                path=data_file1_name,
+                type=FileTypes.file,
+                size="{} Bytes".format(len(data_file1_contents)),
             )
             in files
         )
@@ -135,7 +135,9 @@ class _TestFilesystem(ABC):
         files = list(filesystem.list_directory("data/test/"))
         assert len(files) == 1
         assert files[0] == FileInfo(
-            data_file1_name, FileTypes.file, "{} Bytes".format(len(data_file1_contents))
+            path=data_file1_name,
+            type=FileTypes.file,
+            size="{} Bytes".format(len(data_file1_contents)),
         )
 
     def test_get_file_info(
@@ -147,7 +149,9 @@ class _TestFilesystem(ABC):
     ) -> None:
         info = filesystem.get_file_info(data_file1_name)
         assert info == FileInfo(
-            data_file1_name, FileTypes.file, "{} Bytes".format(len(data_file1_contents))
+            path=data_file1_name,
+            type=FileTypes.file,
+            size="{} Bytes".format(len(data_file1_contents)),
         )
 
     def test_create_file(
@@ -158,7 +162,9 @@ class _TestFilesystem(ABC):
         )
         assert filesystem.exists(data_file1_name)
         assert filesystem.get_file_info(data_file1_name) == FileInfo(
-            data_file1_name, FileTypes.file, "{} Bytes".format(len(data_file1_contents))
+            path=data_file1_name,
+            type=FileTypes.file,
+            size="{} Bytes".format(len(data_file1_contents)),
         )
 
     def test_rename(
@@ -172,7 +178,9 @@ class _TestFilesystem(ABC):
         filesystem.rename(data_file1_name, data_file2_name)
         assert filesystem.exists(data_file2_name)
         assert filesystem.get_file_info(data_file2_name) == FileInfo(
-            data_file2_name, FileTypes.file, "{} Bytes".format(len(data_file1_contents))
+            path=data_file2_name,
+            type=FileTypes.file,
+            size="{} Bytes".format(len(data_file1_contents)),
         )
         assert not filesystem.exists(data_file1_name)
 

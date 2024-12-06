@@ -1,43 +1,54 @@
 from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
-import api.database
-import api.settings
 from api.dependencies import email_sender_dep
 from api.main import app
 from api.models import Job
-from tests.conftest import internal_api_key_secret
 
-client = TestClient(app)
-endpoint = "/_job_status"
+ENDPOINT = "/_job_status"
 
 
-def test_job_status_init(jobs):
-    database = api.database.SessionLocal()
-    assert database.query(Job).first().status == "queued"
+def test_job_status_init(db_session: Session, jobs: list[Job]) -> None:
+    job = db_session.query(Job).first()
+    assert job is not None
+    assert job.status == "queued"
 
 
-def test_job_status_update_requires_internal_api_key(jobs):
+def test_job_status_update_requires_internal_api_key(
+    client: TestClient, jobs: list[Job]
+) -> None:
     response = client.put(
-        endpoint,
+        ENDPOINT,
         json={"job_id": jobs[0].id, "status": "running"},
     )
     assert response.status_code == 422
 
 
-def test_job_status_update(jobs):
+def test_job_status_update(
+    client: TestClient,
+    db_session: Session,
+    internal_api_key_secret: str,
+    jobs: list[Job],
+) -> None:
     response = client.put(
-        endpoint,
+        ENDPOINT,
         json={"job_id": jobs[0].id, "status": "running"},
         headers={"x-api-key": internal_api_key_secret},
     )
-    assert str(response.status_code).startswith("2")
-    database = api.database.SessionLocal()
-    assert database.query(Job).filter(Job.id == jobs[0].id).first().status == "running"
+    assert response.status_code == 200
+    job = db_session.query(Job).filter(Job.id == jobs[0].id).first()
+    assert job is not None
+    assert job.status == "running"
 
 
-def test_finished_notification(jobs, monkeypatch):
+def test_finished_notification(
+    client: TestClient,
+    jobs: list[Job],
+    monkeypatch: MagicMock,
+    internal_api_key_secret: str,
+) -> None:
     mock_email_sender = MagicMock()
     mock_email_sender.send_email = MagicMock()
     monkeypatch.setitem(
@@ -46,7 +57,7 @@ def test_finished_notification(jobs, monkeypatch):
         lambda: mock_email_sender,
     )
     client.put(
-        endpoint,
+        ENDPOINT,
         json={"job_id": jobs[0].id, "status": "finished"},
         headers={"x-api-key": internal_api_key_secret},
     )

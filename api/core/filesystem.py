@@ -396,6 +396,7 @@ def get_filesystem_with_root(root_path: str) -> FileSystem:
         s3_client = boto3.client(
             "s3",
             region_name=settings.s3_region,
+            endpoint_url=f"https://s3.{settings.s3_region}.amazonaws.com",
             config=Config(signature_version="v4", s3={"addressing_style": "path"}),
         )
         # this and config=... required to avoid DNS problems with new buckets

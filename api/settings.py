@@ -3,6 +3,7 @@ import json
 import os
 from typing import Any, cast
 
+import boto3
 import yaml
 
 
@@ -28,7 +29,7 @@ if os.environ.get("DATABASE_SECRET"):  # set and not None
     database_url = database_url.format(database_secret)
 filesystem = os.environ.get("FILESYSTEM")
 s3_bucket = os.environ.get("S3_BUCKET")
-s3_region = os.environ.get("S3_REGION")
+s3_region = os.environ.get("S3_REGION", "eu-central-1")
 user_data_root_path = os.environ.get("USER_DATA_ROOT_PATH", "/data")
 
 
@@ -91,9 +92,11 @@ class LocalConfig(CachedConfig):
 
 class S3Config(CachedConfig):
     def __init__(self, config_path: str, region_name: str):
-        import boto3
-
-        self._s3_client = boto3.client("s3", region_name=region_name)
+        self._s3_client = boto3.client(
+            "s3",
+            region_name=region_name,
+            endpoint_url=f"https://s3.{region_name}.amazonaws.com",
+        )
         self._bucket, self._key = config_path.split("s3://", 1)[1].split("/", 1)
         super().__init__(config_path)
 

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 import api.core.notifications as notifications
 import api.crud.job as job_crud
-import api.database as database
+from api.database import get_db
 from api.dependencies import email_sender_dep, workerfacing_api_auth_dep
 from api.models import JobStates
 from api.schemas.job_update import JobUpdate
@@ -18,7 +18,7 @@ router = APIRouter(dependencies=[Depends(workerfacing_api_auth_dep)])
 )
 def update_job_status(
     update: JobUpdate,
-    db: Session = Depends(database.get_db),
+    db: Session = Depends(get_db),
     email_sender: notifications.EmailSender = Depends(email_sender_dep),
 ) -> JobStates:
     db_job = job_crud.get_job(db, update.job_id)

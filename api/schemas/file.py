@@ -1,5 +1,4 @@
-import enum
-from collections import namedtuple
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel
@@ -13,7 +12,7 @@ class FileUpdate(FileBase):
     pass
 
 
-class FileTypes(enum.Enum):
+class FileTypes(Enum):
     file = "file"
     directory = "directory"
 
@@ -33,4 +32,7 @@ class FileHTTPRequest(BaseModel):
     data: dict[str, Any] = {}
 
 
-FileInfo = namedtuple("FileInfo", ["path", "type", "size"])
+class FileInfo(BaseModel):
+    path: str
+    type: FileTypes
+    size: str

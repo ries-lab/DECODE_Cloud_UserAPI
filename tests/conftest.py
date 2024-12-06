@@ -25,7 +25,7 @@ def enqueueing_func(monkeypatch_module: pytest.MonkeyPatch) -> MagicMock:
     mock_enqueueing_function = MagicMock()
     monkeypatch_module.setitem(
         app.dependency_overrides,
-        enqueueing_function_dep,
+        enqueueing_function_dep,  # type: ignore
         lambda: mock_enqueueing_function,
     )
     return mock_enqueueing_function

@@ -10,8 +10,6 @@ from api.database import Base, engine
 from api.endpoints import auth, auth_get, files, job_update, jobs
 from api.exceptions import register_exception_handlers
 
-Base.metadata.create_all(bind=engine)
-
 app = FastAPI(openapi_tags=tags.tags_metadata)
 if settings.frontend_url:
     app.add_middleware(
@@ -45,3 +43,8 @@ register_exception_handlers(app)
 @app.get("/")
 async def root() -> str:
     return "Welcome to the DECODE OpenCloud User-facing API"
+
+
+@app.on_event("startup")
+def on_startup() -> None:
+    Base.metadata.create_all(bind=engine)
