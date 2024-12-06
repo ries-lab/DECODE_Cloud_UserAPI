@@ -1,0 +1,60 @@
+name: Code checks
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  static_code_checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install poetry
+      run: pipx install poetry
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11.10'
+        cache: 'poetry'
+    - name: Install dependencies
+      run: poetry install
+    - name: Ruff check
+      run: poetry run ruff check .
+    - name: Ruff format check
+      run: poetry run ruff format --check .
+    - name: Mypy check
+      run: poetry run mypy .
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install poetry
+      run: pipx install poetry
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11.10'
+        cache: 'poetry'
+    - name: Install dependencies
+      run: poetry install
+    - name: configure AWS
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.TESTS_AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.TESTS_AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-central-1
+    - name: Run tests
+      run: |
+        poetry run pytest -m "aws or not(aws)" --junitxml=pytest.xml --cov-report=term-missing --cov=api | tee pytest-coverage.txt
+        echo "test_exit_code=${PIPESTATUS[0]}" >> $GITHUB_ENV
+    - name: Coverage comment
+      uses: MishaKav/pytest-coverage-comment@main
+      with:
+        pytest-coverage-path: ./pytest-coverage.txt
+        junitxml-path: ./pytest.xml
+    - name: Fail on test failure
+      run: exit ${{ env.test_exit_code }}

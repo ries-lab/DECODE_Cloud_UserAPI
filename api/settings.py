@@ -1,15 +1,20 @@
 import abc
 import json
 import os
+from typing import Any, cast
+
+import boto3
 import yaml
 
 
 def _load_possibly_aws_secret(name: str) -> str | None:
     """Load environment variable and read password if it is a secret from AWS Secrets Manager."""
     value = os.environ.get(name)
+    if not value:
+        return value
     try:
-        return json.loads(value)["password"]  # AWS Secrets Manager
-    except:
+        return cast(str, json.loads(value)["password"])  # AWS Secrets Manager
+    except json.JSONDecodeError:
         return value
 
 
@@ -24,8 +29,8 @@ if os.environ.get("DATABASE_SECRET"):  # set and not None
     database_url = database_url.format(database_secret)
 filesystem = os.environ.get("FILESYSTEM")
 s3_bucket = os.environ.get("S3_BUCKET")
-s3_region = os.environ.get("S3_REGION")
-user_data_root_path = os.environ.get("USER_DATA_ROOT_PATH")
+s3_region = os.environ.get("S3_REGION", "eu-central-1")
+user_data_root_path = os.environ.get("USER_DATA_ROOT_PATH", "/data")
 
 
 # Worker-facing API
@@ -34,9 +39,9 @@ internal_api_key_secret = _load_possibly_aws_secret("INTERNAL_API_KEY_SECRET")
 
 
 # Authentication
-cognito_user_pool_id = os.environ.get("COGNITO_USER_POOL_ID")
-cognito_region = os.environ.get("COGNITO_REGION")
-cognito_client_id = os.environ.get("COGNITO_CLIENT_ID")
+cognito_user_pool_id = os.environ.get("COGNITO_USER_POOL_ID", "")
+cognito_region = os.environ.get("COGNITO_REGION", "eu-central-1")
+cognito_client_id = os.environ.get("COGNITO_CLIENT_ID", "")
 cognito_secret = _load_possibly_aws_secret("COGNITO_SECRET")
 
 
@@ -56,7 +61,7 @@ class CachedConfig(abc.ABC):
         self._cache_date = self._read_last_modified()
 
     @property
-    def config(self):
+    def config(self) -> dict[str, Any]:
         last_modified = self._read_last_modified()
         if last_modified > self._cache_date:
             self._config = self._read_config()
@@ -64,47 +69,58 @@ class CachedConfig(abc.ABC):
         return self._config
 
     @abc.abstractmethod
-    def _read_config(self):
+    def _read_config(self) -> dict[str, Any]:
+        # TODO: Use pydantic to validate the config
         pass
 
     @abc.abstractmethod
-    def _read_last_modified(self):
+    def _read_last_modified(self) -> float:
         pass
 
 
 class LocalConfig(CachedConfig):
-    def _read_config(self):
+    def _read_config(self) -> dict[str, Any]:
         with open(self._config_path) as f:
-            return yaml.safe_load(f)
+            config = yaml.safe_load(f)
+        if not isinstance(config, dict):
+            raise ValueError("Config file must be a dictionary")
+        return config
 
-    def _read_last_modified(self):
+    def _read_last_modified(self) -> float:
         return os.path.getmtime(self._config_path)
 
 
 class S3Config(CachedConfig):
     def __init__(self, config_path: str, region_name: str):
-        import boto3
-
-        self._s3_client = boto3.client("s3", region_name=region_name)
+        self._s3_client = boto3.client(
+            "s3",
+            region_name=region_name,
+            endpoint_url=f"https://s3.{region_name}.amazonaws.com",
+        )
         self._bucket, self._key = config_path.split("s3://", 1)[1].split("/", 1)
         super().__init__(config_path)
 
-    def _read_config(self):
-        return yaml.safe_load(
+    def _read_config(self) -> dict[Any, Any]:
+        config = yaml.safe_load(
             self._s3_client.get_object(Bucket=self._bucket, Key=self._key)["Body"]
         )
+        if not isinstance(config, dict):
+            raise ValueError("Config file must be a dictionary")
+        return config
 
-    def _read_last_modified(self):
+    def _read_last_modified(self) -> float:
         return self._s3_client.head_object(Bucket=self._bucket, Key=self._key)[
             "LastModified"
-        ]
+        ].timestamp()
 
 
 application_config_file = os.environ.get("APPLICATION_CONFIG_FILE") or os.path.join(
     os.path.dirname(__file__), "..", "application_config.yaml"
 )
 if application_config_file.startswith("s3://"):
-    application_config = S3Config(application_config_file, region_name=s3_region)
+    application_config: CachedConfig = S3Config(
+        application_config_file, region_name=s3_region or "eu-central-1"
+    )
 else:
     application_config = LocalConfig(application_config_file)
 

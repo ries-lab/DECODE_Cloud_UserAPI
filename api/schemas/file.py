@@ -1,6 +1,7 @@
-from pydantic import BaseModel
+from enum import Enum
+from typing import Any
 
-from api.core.filesystem import FileTypes
+from pydantic import BaseModel
 
 
 class FileBase(BaseModel):
@@ -9,6 +10,11 @@ class FileBase(BaseModel):
 
 class FileUpdate(FileBase):
     pass
+
+
+class FileTypes(Enum):
+    file = "file"
+    directory = "directory"
 
 
 class File(FileBase):
@@ -22,5 +28,11 @@ class File(FileBase):
 class FileHTTPRequest(BaseModel):
     method: str
     url: str
-    headers: dict = {}  # thank you pydantic, for handling mutable defaults
-    data: dict = {}
+    headers: dict[str, Any] = {}  # thank you pydantic, for handling mutable defaults
+    data: dict[str, Any] = {}
+
+
+class FileInfo(BaseModel):
+    path: str
+    type: FileTypes
+    size: str

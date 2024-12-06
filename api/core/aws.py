@@ -1,11 +1,13 @@
 import base64
-import hmac
 import hashlib
+import hmac
 
 
-def calculate_secret_hash(email, client_id, key):
-    key = bytes(key, "utf-8")
-    message = bytes(email + client_id, "utf-8")
+def calculate_secret_hash(email: str, client_id: str, key: str) -> str:
     return base64.b64encode(
-        hmac.new(key, message, digestmod=hashlib.sha256).digest()
+        hmac.new(
+            bytes(key, "utf-8"),
+            bytes(email + client_id, "utf-8"),
+            digestmod=hashlib.sha256,
+        ).digest()
     ).decode()
