@@ -44,7 +44,7 @@ types-pyyaml = "^6.0.12.20240917"
 moto = "^5.0.21"
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core=1.8.4"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
