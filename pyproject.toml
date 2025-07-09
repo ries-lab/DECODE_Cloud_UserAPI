@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "User-facing API of DECODE OpenCloud."
 authors = ["Arthur Jaques <arthur.jaques@hispeed.ch>"]
 readme = "README.md"
+requires-poetry = "2.1.3"
 
 [tool.poetry.dependencies]
 python = "3.11.10"
@@ -45,7 +46,7 @@ types-pyyaml = "^6.0.12.20240917"
 moto = "^5.0.21"
 
 [build-system]
-requires = ["poetry-core=1.8.4"]
+requires = ["poetry-core==1.9.1"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
