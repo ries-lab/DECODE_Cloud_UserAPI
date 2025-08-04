@@ -73,14 +73,14 @@ def test_date_started_set_on_pulled_status(
     """Test that date_started is set when job status changes to 'pulled'."""
     job = jobs[0]
     assert job.date_started is None  # Initially no start date
-    
+
     response = client.put(
         ENDPOINT,
         json={"job_id": job.id, "status": "pulled"},
         headers={"x-api-key": internal_api_key_secret},
     )
     assert response.status_code == 200
-    
+
     # Refresh job from database
     db_session.refresh(job)
     assert job.status == "pulled"
@@ -96,7 +96,7 @@ def test_date_started_not_overwritten(
 ) -> None:
     """Test that date_started is not overwritten if already set."""
     job = jobs[0]
-    
+
     # First update to 'pulled' to set date_started
     client.put(
         ENDPOINT,
@@ -106,7 +106,7 @@ def test_date_started_not_overwritten(
     db_session.refresh(job)
     original_start_date = job.date_started
     assert original_start_date is not None
-    
+
     # Update to another status and then back to pulled
     client.put(
         ENDPOINT,
@@ -118,7 +118,7 @@ def test_date_started_not_overwritten(
         json={"job_id": job.id, "status": "pulled"},
         headers={"x-api-key": internal_api_key_secret},
     )
-    
+
     db_session.refresh(job)
     assert job.date_started == original_start_date  # Should not change
 
@@ -132,14 +132,14 @@ def test_date_finished_set_on_finished_status(
     """Test that date_finished is set when job status changes to 'finished'."""
     job = jobs[0]
     assert job.date_finished is None  # Initially no finish date
-    
+
     response = client.put(
         ENDPOINT,
         json={"job_id": job.id, "status": "finished"},
         headers={"x-api-key": internal_api_key_secret},
     )
     assert response.status_code == 200
-    
+
     # Refresh job from database
     db_session.refresh(job)
     assert job.status == "finished"
@@ -155,14 +155,14 @@ def test_date_finished_set_on_error_status(
     """Test that date_finished is set when job status changes to 'error'."""
     job = jobs[0]
     assert job.date_finished is None  # Initially no finish date
-    
+
     response = client.put(
         ENDPOINT,
         json={"job_id": job.id, "status": "error"},
         headers={"x-api-key": internal_api_key_secret},
     )
     assert response.status_code == 200
-    
+
     # Refresh job from database
     db_session.refresh(job)
     assert job.status == "error"
@@ -177,7 +177,7 @@ def test_date_finished_not_overwritten(
 ) -> None:
     """Test that date_finished is not overwritten if already set."""
     job = jobs[0]
-    
+
     # First update to 'finished' to set date_finished
     client.put(
         ENDPOINT,
@@ -187,13 +187,13 @@ def test_date_finished_not_overwritten(
     db_session.refresh(job)
     original_finish_date = job.date_finished
     assert original_finish_date is not None
-    
+
     # Update to error status (should not overwrite date_finished)
     client.put(
         ENDPOINT,
         json={"job_id": job.id, "status": "error"},
         headers={"x-api-key": internal_api_key_secret},
     )
-    
+
     db_session.refresh(job)
     assert job.date_finished == original_finish_date  # Should not change
