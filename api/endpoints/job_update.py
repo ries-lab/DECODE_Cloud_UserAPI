@@ -1,3 +1,5 @@
+import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -24,7 +26,21 @@ def update_job_status(
     db_job = job_crud.get_job(db, update.job_id)
     if db_job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    
+    # Update the status
     db_job.status = update.status.value
+    
+    # Update date_started when job is first pulled/started
+    if update.status == JobStates.pulled and db_job.date_started is None:
+        db_job.date_started = datetime.datetime.now(datetime.timezone.utc)
+    
+    # Update date_finished when job reaches a terminal state
+    if (
+        update.status in [JobStates.finished, JobStates.error] 
+        and db_job.date_finished is None
+    ):
+        db_job.date_finished = datetime.datetime.now(datetime.timezone.utc)
+    
     if update.runtime_details:
         db_job.runtime_details = (
             (db_job.runtime_details or "") + "\n" + update.runtime_details

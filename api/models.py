@@ -50,7 +50,7 @@ class Job(Base):  # type: ignore
     user_id = mapped_column(String, nullable=False)
     user_email = mapped_column(String, nullable=True)  # required for notifications
     job_name = mapped_column(String)
-    date_created = mapped_column(DateTime, default=datetime.datetime.utcnow)
+    date_created = mapped_column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     date_started = mapped_column(DateTime)
     date_finished = mapped_column(DateTime)
     status = mapped_column(
