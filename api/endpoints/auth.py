@@ -13,6 +13,7 @@ from api.core.aws import calculate_secret_hash
 from api.core.filesystem import get_user_filesystem
 from api.schemas.token import TokenResponse
 from api.schemas.user import User, UserGroups
+from api.schemas.common import ErrorResponse, MessageResponse
 from api.settings import cognito_client_id, cognito_secret, cognito_user_pool_id
 
 router = APIRouter()
@@ -22,7 +23,12 @@ router = APIRouter()
     "/user",
     status_code=status.HTTP_201_CREATED,
     response_model=User,
-    description="Register a new user",
+    description="Register a new user in the system",
+    responses={
+        201: {"description": "User successfully registered", "model": User},
+        400: {"description": "Invalid registration parameters or password requirements not met", "model": ErrorResponse},
+        409: {"description": "User already exists", "model": ErrorResponse}
+    }
 )
 def register_user(
     user: OAuth2PasswordRequestForm = Depends(), groups: list[UserGroups] | None = None
@@ -73,7 +79,13 @@ def register_user(
     "/token",
     status_code=status.HTTP_201_CREATED,
     response_model=TokenResponse,
-    description="Get a new login token",
+    description="Authenticate user and get a JWT token",
+    responses={
+        201: {"description": "Successfully authenticated", "model": TokenResponse},
+        400: {"description": "Invalid credentials", "model": ErrorResponse},
+        404: {"description": "User not found", "model": ErrorResponse},
+        500: {"description": "Internal server error", "model": ErrorResponse}
+    }
 )
 async def get_token(login: OAuth2PasswordRequestForm = Depends()) -> TokenResponse:
     client = boto3.client("cognito-idp")
@@ -110,9 +122,16 @@ async def get_token(login: OAuth2PasswordRequestForm = Depends()) -> TokenRespon
 
 @router.post(
     "/login",
-    status_code=status.HTTP_201_CREATED,
+    status_code=status.HTTP_200_OK,
+    response_model=MessageResponse,
     response_class=JSONResponse,
-    description="Login to the system (sets a cookie)",
+    description="Login to the system and set authentication cookie",
+    responses={
+        200: {"description": "Successfully logged in", "model": MessageResponse},
+        400: {"description": "Invalid credentials", "model": ErrorResponse},
+        404: {"description": "User not found", "model": ErrorResponse},
+        500: {"description": "Internal server error", "model": ErrorResponse}
+    }
 )
 def get_login(user: OAuth2PasswordRequestForm = Depends()) -> JSONResponse:
     client = boto3.client("cognito-idp")

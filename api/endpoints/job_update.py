@@ -9,6 +9,7 @@ from api.database import get_db
 from api.dependencies import email_sender_dep, workerfacing_api_auth_dep
 from api.models import JobStates
 from api.schemas.job_update import JobUpdate
+from api.schemas.common import ErrorResponse
 
 router = APIRouter(dependencies=[Depends(workerfacing_api_auth_dep)])
 
@@ -16,7 +17,12 @@ router = APIRouter(dependencies=[Depends(workerfacing_api_auth_dep)])
 @router.put(
     "/_job_status",
     response_model=JobStates,
+    status_code=status.HTTP_200_OK,
     description="Internal endpoint for the worker-facing API to signal job status updates",
+    responses={
+        200: {"description": "Job status successfully updated", "model": JobStates},
+        404: {"description": "Job not found", "model": ErrorResponse}
+    }
 )
 def update_job_status(
     update: JobUpdate,
