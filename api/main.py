@@ -2,13 +2,14 @@ import dotenv
 
 dotenv.load_dotenv()
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from api import dependencies, settings, tags
 from api.database import Base, engine
 from api.endpoints import auth, auth_get, files, job_update, jobs
 from api.exceptions import register_exception_handlers
+from api.schemas.common import MessageResponse
 
 app = FastAPI(openapi_tags=tags.tags_metadata)
 if settings.frontend_url:
@@ -40,7 +41,15 @@ app.include_router(job_update.router, tags=["_Internal"])
 register_exception_handlers(app)
 
 
-@app.get("/")
+@app.get(
+    "/",
+    response_model=str,
+    status_code=status.HTTP_200_OK,
+    description="Welcome message for the DECODE OpenCloud User-facing API",
+    responses={
+        200: {"description": "Welcome message", "model": str}
+    }
+)
 async def root() -> str:
     return "Welcome to the DECODE OpenCloud User-facing API"
 

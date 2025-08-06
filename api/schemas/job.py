@@ -114,6 +114,49 @@ class Job(JobBase, JobReadBase):
 
     class Config:
         orm_mode = True
+        schema_extra = {
+            "example": {
+                "job_name": "decode_analysis_job",
+                "environment": "cpu",
+                "priority": 1,
+                "application": {
+                    "application": "decode", 
+                    "version": "latest",
+                    "entrypoint": "analysis"
+                },
+                "attributes": {
+                    "files_down": {
+                        "config_id": "config_123",
+                        "data_ids": ["data_456", "data_789"],
+                        "artifact_ids": ["artifact_abc"]
+                    },
+                    "env_vars": {
+                        "PARAM1": "value1",
+                        "PARAM2": "value2"
+                    }
+                },
+                "hardware": {
+                    "cpu_cores": 4,
+                    "memory": 8192,
+                    "gpu_model": None,
+                    "gpu_archi": None,
+                    "gpu_mem": None
+                },
+                "id": 12345,
+                "date_created": "2023-12-01T10:00:00Z",
+                "date_started": "2023-12-01T10:05:00Z",
+                "date_finished": "2023-12-01T11:30:00Z",
+                "status": "finished",
+                "runtime_details": "Job completed successfully",
+                "paths_out": {
+                    "output": "/outputs/results/",
+                    "log": "/outputs/logs/job.log",
+                    "artifact": "/outputs/artifacts/"
+                },
+                "user_id": "user@example.com",
+                "user_email": "user@example.com"
+            }
+        }
 
 
 class MetaSpecs(BaseModel):
