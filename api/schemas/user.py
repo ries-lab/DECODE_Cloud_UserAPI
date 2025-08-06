@@ -21,3 +21,9 @@ class UserCreate(UserBase):
 class User(UserBase):
     class Config:
         orm_mode = True
+        schema_extra = {
+            "example": {
+                "email": "user@example.com",
+                "groups": ["users"]
+            }
+        }
