@@ -31,8 +31,29 @@ class FileHTTPRequest(BaseModel):
     headers: dict[str, Any] = {}  # thank you pydantic, for handling mutable defaults
     data: dict[str, Any] = {}
 
+    class Config:
+        schema_extra = {
+            "example": {
+                "method": "POST",
+                "url": "https://example.s3.amazonaws.com/uploads/myfile.txt",
+                "headers": {
+                    "Content-Type": "application/octet-stream"
+                },
+                "data": {}
+            }
+        }
+
 
 class FileInfo(BaseModel):
     path: str
     type: FileTypes
     size: str
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "path": "uploads/myfile.txt",
+                "type": "file",
+                "size": "1.2 MB"
+            }
+        }
