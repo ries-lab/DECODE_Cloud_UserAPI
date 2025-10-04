@@ -15,17 +15,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
       - name: Set version
         id: set-version
         run: |
           if [ "${{ github.event_name }}" == "workflow_run" ]; then
             POETRY_VERSION=$(grep -E '^requires-poetry = ' pyproject.toml | sed -E 's/requires-poetry = "(.*)"/\1/')
             pip install poetry==$POETRY_VERSION
-            REF=refs/tags/$(poetry version -s)
             PROD=true
-            VERSION=$REF
+            VERSION=$(poetry version -s)
           else
-            REF=$GITHUB_REF
             if [[ "$GITHUB_REF" == refs/tags/* ]]; then
               PROD=true
               VERSION=${GITHUB_REF#refs/tags/}
@@ -34,15 +37,8 @@ jobs:
               VERSION=dev-${GITHUB_REF#refs/heads/}-${GITHUB_SHA::7}
             fi
           fi
-          echo "REF=$REF" >> $GITHUB_OUTPUT
           echo "PROD=$PROD" >> $GITHUB_OUTPUT
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ steps.set-version.outputs.REF }}
-          fetch-depth: 0
 
       - name: Get Python version
         id: get-python-version
