@@ -117,4 +117,4 @@ jobs:
           TAG_NAME: ${{ steps.set-version.outputs.VERSION }}
         with:
           body: "**Published image (AWS ECR Public):** `${{ steps.build-and-push.outputs.IMAGE_REF }}`"
-          isAppendBody: true
+          is_append_body: true
