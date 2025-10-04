@@ -28,7 +28,9 @@ jobs:
             pip install poetry==$POETRY_VERSION
             PROD=true
             VERSION=$(poetry version -s)
+            REF=refs/tags/$VERSION
           else
+            REF=$GITHUB_REF
             if [[ "$GITHUB_REF" == refs/tags/* ]]; then
               PROD=true
               VERSION=${GITHUB_REF#refs/tags/}
@@ -39,6 +41,14 @@ jobs:
           fi
           echo "PROD=$PROD" >> $GITHUB_OUTPUT
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "REF=$REF" >> $GITHUB_OUTPUT
+
+      # on main, we do not want necessarily the latest commit, but the one that was tagged
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ steps.set-version.outputs.REF }}
+          fetch-depth: 0
 
       - name: Get Python version
         id: get-python-version
