@@ -1,3 +1,4 @@
+import datetime
 import secrets
 import time
 from typing import Any, Generator
@@ -12,6 +13,9 @@ from sqlalchemy import Engine, MetaData, create_engine
 
 from api.dependencies import enqueueing_function_dep
 from api.main import app
+
+TEST_BUCKET_PREFIX = "decode-cloud-user-api-tests-"
+REGION_NAME: BucketLocationConstraintType = "eu-central-1"
 
 
 @pytest.fixture(scope="module")
@@ -34,8 +38,8 @@ def enqueueing_func(monkeypatch_module: pytest.MonkeyPatch) -> MagicMock:
 class RDSTestingInstance:
     def __init__(self, db_name: str):
         self.db_name = db_name
-        self.rds_client = boto3.client("rds", "eu-central-1")
-        self.ec2_client = boto3.client("ec2", "eu-central-1")
+        self.rds_client = boto3.client("rds", REGION_NAME)
+        self.ec2_client = boto3.client("ec2", REGION_NAME)
         self.add_ingress_rule()
         self.db_url = self.create_db_url()
         self.delete_db_tables()
@@ -86,13 +90,13 @@ class RDSTestingInstance:
 
     def get_db_password(self) -> str:
         secret_name = "decode-cloud-tests-db-pwd"
-        sm_client = boto3.client("secretsmanager", "eu-central-1")
+        sm_client = boto3.client("secretsmanager", REGION_NAME)
         try:
             return sm_client.get_secret_value(SecretId=secret_name)["SecretString"]
         except botocore.exceptions.ClientError as e:
             if e.response["Error"]["Code"] == "ResourceNotFoundException":
                 secret = secrets.token_urlsafe(32)
-                boto3.client("secretsmanager", "eu-central-1").create_secret(
+                boto3.client("secretsmanager", REGION_NAME).create_secret(
                     Name=secret_name, SecretString=secret
                 )
                 return secret
@@ -141,9 +145,10 @@ class RDSTestingInstance:
 
 
 class S3TestingBucket:
-    def __init__(self, bucket_name: str):
-        self.bucket_name = bucket_name
-        self.region_name: BucketLocationConstraintType = "eu-central-1"
+    def __init__(self, bucket_name_suffix: str):
+        # S3 bucket names must be globally unique - avoid collisions by adding suffix
+        self.bucket_name = f"{TEST_BUCKET_PREFIX}-{bucket_name_suffix}"
+        self.region_name: BucketLocationConstraintType = REGION_NAME
         self.s3_client = boto3.client(
             "s3",
             region_name=self.region_name,
@@ -177,3 +182,29 @@ class S3TestingBucket:
                 CreateBucketConfiguration={"LocationConstraint": self.region_name},
             )
             self.s3_client.get_waiter("bucket_exists").wait(Bucket=self.bucket_name)
+
+
+@pytest.fixture(scope="session")
+def bucket_suffix() -> str:
+    return datetime.datetime.now(datetime.UTC).strftime("%Y%m%d%H%M%S")
+
+
+@pytest.mark.aws
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_old_test_buckets() -> None:
+    """
+    Find and delete all S3 buckets with the test prefix.
+    This helps clean up buckets from previous test runs.
+    """
+    s3_client = boto3.client("s3", region_name=REGION_NAME)
+    response = s3_client.list_buckets(Prefix=TEST_BUCKET_PREFIX)
+    for bucket in response["Buckets"]:
+        bucket_name = bucket["Name"]
+        s3 = boto3.resource("s3", region_name=REGION_NAME)
+        s3_bucket = s3.Bucket(bucket_name)
+        bucket_versioning = s3.BucketVersioning(bucket_name)
+        if bucket_versioning.status == "Enabled":
+            s3_bucket.object_versions.delete()
+        else:
+            s3_bucket.objects.all().delete()
+        s3_client.delete_bucket(Bucket=bucket_name)

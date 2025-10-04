@@ -255,8 +255,6 @@ class TestLocalFilesystem(_TestFilesystem):
 
 
 class TestS3Filesystem(_TestFilesystem):
-    bucket_name = "decode-cloud-user-filesystem-tests"
-
     @pytest.fixture(
         scope="class", params=[True, pytest.param(False, marks=pytest.mark.aws)]
     )
@@ -265,11 +263,11 @@ class TestS3Filesystem(_TestFilesystem):
 
     @pytest.fixture(scope="class")
     def filesystem(
-        self, base_dir: str, mock_aws_: bool
+        self, base_dir: str, mock_aws_: bool, bucket_suffix: str
     ) -> Generator[S3Filesystem, Any, None]:
         context_manager = mock_aws if mock_aws_ else nullcontext
         with context_manager():
-            testing_bucket = S3TestingBucket(self.bucket_name)
+            testing_bucket = S3TestingBucket(bucket_suffix)
             yield S3Filesystem(
                 base_dir, testing_bucket.s3_client, testing_bucket.bucket_name
             )

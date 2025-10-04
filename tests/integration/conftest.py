@@ -28,7 +28,7 @@ from api.dependencies import (
 )
 from api.main import app
 from api.models import Job
-from tests.conftest import RDSTestingInstance, S3TestingBucket
+from tests.conftest import REGION_NAME, RDSTestingInstance, S3TestingBucket
 
 
 @pytest.fixture(scope="module")
@@ -90,10 +90,11 @@ def db_session(env: str) -> Generator[Session, Any, None]:
 
 @pytest.fixture
 def base_filesystem(
-    env: str, base_user_dir: str, monkeypatch_module: pytest.MonkeyPatch
+    env: str,
+    base_user_dir: str,
+    monkeypatch_module: pytest.MonkeyPatch,
+    bucket_suffix: str,
 ) -> Generator[FileSystem, Any, None]:
-    bucket_name = "decode-cloud-user-integration-tests"
-
     if env == "local":
         base_user_dir = f"./{base_user_dir}"
 
@@ -104,13 +105,8 @@ def base_filesystem(
     )
     monkeypatch_module.setattr(
         settings,
-        "s3_bucket",
-        bucket_name,
-    )
-    monkeypatch_module.setattr(
-        settings,
         "s3_region",
-        "eu-central-1",
+        REGION_NAME,
     )
     monkeypatch_module.setattr(
         settings,
@@ -124,7 +120,13 @@ def base_filesystem(
         shutil.rmtree(base_user_dir, ignore_errors=True)
 
     elif env == "aws":
-        testing_bucket = S3TestingBucket(bucket_name)
+        testing_bucket = S3TestingBucket(bucket_suffix)
+        # Update settings to use the actual unique bucket name created by S3TestingBucket
+        monkeypatch_module.setattr(
+            settings,
+            "s3_bucket",
+            testing_bucket.bucket_name,
+        )
         yield S3Filesystem(
             base_user_dir, testing_bucket.s3_client, testing_bucket.bucket_name
         )
