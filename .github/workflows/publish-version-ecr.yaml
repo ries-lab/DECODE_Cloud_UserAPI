@@ -78,7 +78,11 @@ jobs:
           ECR_REPOSITORY: decode-cloud/user-api
           PYTHON_VERSION: ${{ steps.get-python-version.outputs.PYTHON_VERSION }}
         run: |
-          IMAGE_REF=$ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
+          ECR_REPOSITORY_FULL=$ECR_REGISTRY/$ECR_REPOSITORY
+          if ! aws ecr-public describe-repositories --repository-names $ECR_REPOSITORY_FULL --region us-east-1 2>/dev/null; then
+            aws ecr-public create-repository --repository-name $ECR_REPOSITORY_FULL --region us-east-1
+          fi
+          IMAGE_REF=$ECR_REPOSITORY_FULL:$VERSION
           echo "IMAGE_REF=$IMAGE_REF" >> $GITHUB_OUTPUT
           if docker manifest inspect $IMAGE_REF > /dev/null 2>&1; then
             NEW_IMAGE=false
@@ -90,17 +94,17 @@ jobs:
             echo "## 🚀 Published Docker Image: $IMAGE_REF" >> $GITHUB_STEP_SUMMARY
             if [[ $PROD == "true" ]]; then
               SET_LATEST=true
-              LATEST_EXISTS=$(docker manifest inspect $ECR_REGISTRY/$ECR_REPOSITORY:latest > /dev/null 2>&1 && echo "true" || echo "false")
+              LATEST_EXISTS=$(docker manifest inspect $ECR_REPOSITORY_FULL:latest > /dev/null 2>&1 && echo "true" || echo "false")
               if [[ $LATEST_EXISTS == "true" ]]; then
-                LATEST_LABELS=$(docker manifest inspect $ECR_REGISTRY/$ECR_REPOSITORY:latest | grep -o '"org.opencontainers.image.version":"[^"]*"' | cut -d'"' -f4 || echo "")
+                LATEST_LABELS=$(docker manifest inspect $ECR_REPOSITORY_FULL:latest | grep -o '"org.opencontainers.image.version":"[^"]*"' | cut -d'"' -f4 || echo "")
                 if printf '%s\n%s\n' "$LATEST_LABELS" "$VERSION" | sort -V | head -n1 | grep -q "^$VERSION$"; then
                   SET_LATEST=false
                 fi
               fi
               if [[ $SET_LATEST == "true" ]]; then
-                docker tag $IMAGE_REF $ECR_REGISTRY/$ECR_REPOSITORY:latest
-                docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-                echo "Also tagged as: \`$ECR_REGISTRY/$ECR_REPOSITORY:latest\`" >> $GITHUB_STEP_SUMMARY
+                docker tag $IMAGE_REF $ECR_REPOSITORY_FULL:latest
+                docker push $ECR_REPOSITORY_FULL:latest
+                echo "Also tagged as: \`$ECR_REPOSITORY_FULL:latest\`" >> $GITHUB_STEP_SUMMARY
               fi
             fi
           fi
