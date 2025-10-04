@@ -135,7 +135,7 @@ decode:
           - "--log_path=/files/log"
         env: []
       handler:
-        image_url: "public.ecr.aws/g0e9g3b1/decode:v0_10_1"
+        image_url: "public.ecr.aws/w2b7b8c0/decode:v0_10_1"
         files_down:
           config_id: config
           data_ids: data

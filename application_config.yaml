@@ -11,7 +11,7 @@ decode:
           - "--log_path=/files/log"
         env: []
       handler:
-        image_url: "public.ecr.aws/g0e9g3b1/decode:v0_10_1"
+        image_url: "public.ecr.aws/w2b7b8c0/decode:v0_10_1"
         files_down:
           config_id: config
           data_ids: data
@@ -37,7 +37,7 @@ decode:
           - "--emitter_path=/files/output/emitter.h5"
         env: []
       handler:
-        image_url: "public.ecr.aws/g0e9g3b1/decode:v0_10_1"
+        image_url: "public.ecr.aws/w2b7b8c0/decode:v0_10_1"
         files_down:
           config_id: config
           data_ids: data
@@ -66,7 +66,7 @@ decode:
           - "Paths.trafo=$(find /files/data -name '*_trafo.mat' | head -n 1 | grep . || echo null)"
         env: []
       handler:
-        image_url: "public.ecr.aws/g0e9g3b1/decode:latest"
+        image_url: "public.ecr.aws/w2b7b8c0/decode:latest"
         files_down:
           config_id: config_tmp
           data_ids: data
@@ -94,7 +94,7 @@ comet:
           - " > /files/log/log.log"
         env: []
       handler:
-        image_url: "public.ecr.aws/g0e9g3b1/comet:latest"
+        image_url: "public.ecr.aws/w2b7b8c0/comet:latest"
         files_down:
           config_id: config
           data_ids: data
