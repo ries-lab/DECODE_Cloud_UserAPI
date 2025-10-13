@@ -7,6 +7,7 @@ import api.database as database
 from api.crud import job as crud
 from api.dependencies import enqueueing_function_dep
 from api.schemas.job import Job, JobCreate, QueueJob
+from api.schemas.common import ErrorResponse
 from api.settings import application_config
 
 router = APIRouter()
@@ -18,13 +19,25 @@ ApplicationConfig = dict[str, dict[str, dict[str, Any]]]
 @router.get(
     "/jobs/applications",
     response_model=ApplicationConfig,
+    status_code=status.HTTP_200_OK,
     description="List all available applications/versions/entrypoints",
+    responses={
+        200: {"description": "Successfully retrieved applications configuration", "model": ApplicationConfig}
+    }
 )
 def list_applications() -> ApplicationConfig:
     return application_config.config
 
 
-@router.get("/jobs", response_model=list[Job], description="List all jobs")
+@router.get(
+    "/jobs", 
+    response_model=list[Job], 
+    status_code=status.HTTP_200_OK,
+    description="List all jobs for the authenticated user",
+    responses={
+        200: {"description": "Successfully retrieved list of jobs", "model": list[Job]}
+    }
+)
 def list_jobs(
     request: Request,
     offset: int = 0,
@@ -38,7 +51,16 @@ def list_jobs(
     )
 
 
-@router.get("/jobs/{job_id}", response_model=Job, description="Describe a job")
+@router.get(
+    "/jobs/{job_id}", 
+    response_model=Job, 
+    status_code=status.HTTP_200_OK,
+    description="Get detailed information about a specific job",
+    responses={
+        200: {"description": "Successfully retrieved job details", "model": Job},
+        404: {"description": "Job not found", "model": ErrorResponse}
+    }
+)
 def describe_job(
     request: Request, job_id: int, db: Session = Depends(database.get_db)
 ) -> Job:
@@ -54,7 +76,11 @@ def describe_job(
     "/jobs",
     status_code=status.HTTP_201_CREATED,
     response_model=Job,
-    description="Start a job",
+    description="Create and start a new job",
+    responses={
+        201: {"description": "Job successfully created and started", "model": Job},
+        400: {"description": "Invalid job parameters or file not found", "model": ErrorResponse}
+    }
 )
 def start_job(
     request: Request,
@@ -78,7 +104,11 @@ def start_job(
     "/jobs/{job_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     response_model=None,
-    description="Delete a job",
+    description="Delete a job and all associated data",
+    responses={
+        204: {"description": "Job successfully deleted"},
+        404: {"description": "Job not found", "model": ErrorResponse}
+    }
 )
 def delete_job(
     request: Request, job_id: int, db: Session = Depends(database.get_db)
