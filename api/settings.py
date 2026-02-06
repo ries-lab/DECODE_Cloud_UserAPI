@@ -27,7 +27,7 @@ database_url = os.environ.get("DATABASE_URL", "sqlite:///./sql_app.db")
 if os.environ.get("DATABASE_SECRET"):  # set and not None
     database_secret = _load_possibly_aws_secret("DATABASE_SECRET")
     database_url = database_url.format(database_secret)
-filesystem = os.environ.get("FILESYSTEM")
+filesystem = os.environ.get("FILESYSTEM", "local")
 s3_bucket = os.environ.get("S3_BUCKET")
 s3_region = os.environ.get("S3_REGION", "eu-central-1")
 user_data_root_path = os.environ.get("USER_DATA_ROOT_PATH", "/data")

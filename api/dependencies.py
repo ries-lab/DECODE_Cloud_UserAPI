@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from api import settings
 from api.core import notifications
-from api.core.filesystem import FileSystem, get_user_filesystem
+from api.core.filesystem import FileSystem, user_filesystem_getter
 from api.schemas.job import QueueJob
 
 
@@ -52,11 +52,22 @@ async def current_user_global_dep(
     return current_user
 
 
-async def filesystem_dep(
+async def filesystem_getter_dep() -> Callable[[str], FileSystem]:
+    """Get the user's filesystem getter."""
+    return user_filesystem_getter(
+        user_data_root_path=settings.user_data_root_path,
+        filesystem=settings.filesystem,
+        s3_region=settings.s3_region,
+        s3_bucket=settings.s3_bucket,
+    )
+
+
+async def user_filesystem_dep(
+    filesystem_getter: Callable[[str], FileSystem] = Depends(filesystem_getter_dep),
     current_user: CognitoClaims = Depends(current_user_dep),
 ) -> FileSystem:
     """Get the user's filesystem."""
-    return get_user_filesystem(current_user.username)
+    return filesystem_getter(current_user.username)
 
 
 class APIKeyDependency:

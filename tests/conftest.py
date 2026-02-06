@@ -1,7 +1,7 @@
 import datetime
 import secrets
 import time
-from typing import Any, Generator
+from typing import Any
 from unittest.mock import MagicMock
 
 import boto3
@@ -18,16 +18,10 @@ TEST_BUCKET_PREFIX = "decode-cloud-user-api-tests-"
 REGION_NAME: BucketLocationConstraintType = "eu-central-1"
 
 
-@pytest.fixture(scope="session")
-def monkeypatch_module() -> Generator[pytest.MonkeyPatch, Any, None]:
-    with pytest.MonkeyPatch.context() as mp:
-        yield mp
-
-
-@pytest.fixture(autouse=True, scope="function")
-def enqueueing_func(monkeypatch_module: pytest.MonkeyPatch) -> MagicMock:
+@pytest.fixture(autouse=True)
+def enqueueing_func(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     mock_enqueueing_function = MagicMock()
-    monkeypatch_module.setitem(
+    monkeypatch.setitem(
         app.dependency_overrides,
         enqueueing_function_dep,  # type: ignore
         lambda: mock_enqueueing_function,

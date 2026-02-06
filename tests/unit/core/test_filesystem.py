@@ -57,10 +57,8 @@ class _TestFilesystem(ABC):
     def test_list_directory_file(
         self,
         filesystem: FileSystem,
-        monkeypatch: pytest.MonkeyPatch,
         data_file1_name: str,
     ) -> None:
-        monkeypatch.setattr(filesystem, "isdir", lambda path: False)
         with pytest.raises(NotADirectoryError):
             filesystem.list_directory(data_file1_name)
 

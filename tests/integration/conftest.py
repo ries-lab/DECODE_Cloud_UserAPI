@@ -1,7 +1,7 @@
 import os
 import shutil
 from io import BytesIO
-from typing import Any, Generator, cast
+from typing import Any, Callable, Generator, cast
 from unittest.mock import Mock
 
 import pytest
@@ -16,19 +16,19 @@ from api.core.filesystem import (
     FileSystem,
     LocalFilesystem,
     S3Filesystem,
-    get_user_filesystem,
+    user_filesystem_getter,
 )
 from api.database import Base, get_db
 from api.dependencies import (
     APIKeyDependency,
     current_user_dep,
     email_sender_dep,
-    filesystem_dep,
+    filesystem_getter_dep,
     workerfacing_api_auth_dep,
 )
 from api.main import app
 from api.models import Job
-from tests.conftest import REGION_NAME, RDSTestingInstance, S3TestingBucket
+from tests.conftest import RDSTestingInstance, S3TestingBucket
 
 
 @pytest.fixture(scope="session")
@@ -104,40 +104,16 @@ def db_session(
 def base_filesystem(
     env: str,
     base_user_dir: str,
-    monkeypatch_module: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch,
     s3_testing_bucket: S3TestingBucket,
 ) -> Generator[FileSystem, Any, None]:
     if env == "local":
         base_user_dir = f"./{base_user_dir}"
-
-    monkeypatch_module.setattr(
-        settings,
-        "user_data_root_path",
-        base_user_dir,
-    )
-    monkeypatch_module.setattr(
-        settings,
-        "s3_region",
-        REGION_NAME,
-    )
-    monkeypatch_module.setattr(
-        settings,
-        "filesystem",
-        "local" if env == "local" else "s3",
-    )
-
-    if env == "local":
         shutil.rmtree(base_user_dir, ignore_errors=True)
         yield LocalFilesystem(base_user_dir)
         shutil.rmtree(base_user_dir, ignore_errors=True)
 
     elif env == "aws":
-        # Update settings to use the actual unique bucket name created by S3TestingBucket
-        monkeypatch_module.setattr(
-            settings,
-            "s3_bucket",
-            s3_testing_bucket.bucket_name,
-        )
         yield S3Filesystem(
             base_user_dir, s3_testing_bucket.s3_client, s3_testing_bucket.bucket_name
         )
@@ -148,15 +124,29 @@ def base_filesystem(
 
 
 @pytest.fixture
-def user_filesystem(base_filesystem: FileSystem, username: str) -> FileSystem:
-    return get_user_filesystem(username)
+def filesystem_getter(
+    base_filesystem: FileSystem,
+    base_user_dir: str,
+    s3_testing_bucket: S3TestingBucket,
+) -> Callable[[str], FileSystem]:
+    return user_filesystem_getter(
+        user_data_root_path=base_user_dir,
+        filesystem="s3" if isinstance(base_filesystem, S3Filesystem) else "local",
+        s3_region=s3_testing_bucket.region_name,
+        s3_bucket=s3_testing_bucket.bucket_name,
+    )
+
+
+@pytest.fixture
+def user_filesystem(
+    filesystem_getter: Callable[[str], FileSystem], username: str
+) -> FileSystem:
+    return filesystem_getter(username)
 
 
 @pytest.fixture(autouse=True)
-def override_db_dep(
-    db_session: Session, monkeypatch_module: pytest.MonkeyPatch
-) -> None:
-    monkeypatch_module.setitem(
+def override_db_dep(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(
         app.dependency_overrides,  # type: ignore
         get_db,
         lambda: db_session,
@@ -164,50 +154,50 @@ def override_db_dep(
 
 
 @pytest.fixture(autouse=True)
-def override_filesystem_dep(
-    user_filesystem: FileSystem, monkeypatch_module: pytest.MonkeyPatch
+def override_user_filesystem_getter(
+    filesystem_getter: Callable[[str], FileSystem], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch_module.setitem(
+    monkeypatch.setitem(
         app.dependency_overrides,  # type: ignore
-        filesystem_dep,
-        lambda: user_filesystem,
+        filesystem_getter_dep,
+        lambda: filesystem_getter,
     )
 
 
-@pytest.fixture(autouse=True, scope="session")
+@pytest.fixture(autouse=True)
 def override_auth(
-    monkeypatch_module: pytest.MonkeyPatch, username: str, user_email: str
+    monkeypatch: pytest.MonkeyPatch, username: str, user_email: str
 ) -> None:
-    monkeypatch_module.setitem(
+    monkeypatch.setitem(
         app.dependency_overrides,  # type: ignore
         current_user_dep,
         lambda: CognitoClaims(**{"cognito:username": username, "email": user_email}),
     )
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(autouse=True)
 def override_internal_api_key_secret(
-    monkeypatch_module: pytest.MonkeyPatch, internal_api_key_secret: str
+    monkeypatch: pytest.MonkeyPatch, internal_api_key_secret: str
 ) -> None:
-    monkeypatch_module.setitem(
+    monkeypatch.setitem(
         app.dependency_overrides,  # type: ignore
         workerfacing_api_auth_dep,
         APIKeyDependency(internal_api_key_secret),
     )
 
 
-@pytest.fixture(scope="session", autouse=True)
-def override_email_sender(monkeypatch_module: pytest.MonkeyPatch) -> None:
-    monkeypatch_module.setitem(
+@pytest.fixture(autouse=True)
+def override_email_sender(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(
         app.dependency_overrides,  # type: ignore
         email_sender_dep,
         lambda: notifications.DummyEmailSender(),
     )
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(autouse=True)
 def override_application_config(
-    monkeypatch_module: pytest.MonkeyPatch, application: dict[str, str]
+    monkeypatch: pytest.MonkeyPatch, application: dict[str, str]
 ) -> None:
     application_config = Mock()
     application_config.config = {
@@ -236,7 +226,7 @@ def override_application_config(
             },
         },
     }
-    monkeypatch_module.setattr(settings, "application_config", application_config)
+    monkeypatch.setattr(settings, "application_config", application_config)
 
 
 @pytest.fixture

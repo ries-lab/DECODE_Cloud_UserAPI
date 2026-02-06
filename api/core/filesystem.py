@@ -5,7 +5,7 @@ import re
 import shutil
 import zipfile
 from pathlib import Path, PurePosixPath
-from typing import Any, BinaryIO, Generator, cast
+from typing import Any, BinaryIO, Callable, Generator
 
 import boto3
 import humanize
@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from mypy_boto3_s3 import S3Client
 from mypy_boto3_s3.type_defs import ObjectIdentifierTypeDef
 
-from api import models, settings
+from api import models
 from api.schemas.file import FileHTTPRequest, FileInfo, FileTypes
 
 
@@ -387,29 +387,43 @@ class S3Filesystem(FileSystem):
         )
 
 
-def get_filesystem_with_root(root_path: str) -> FileSystem:
+def get_filesystem_with_root(
+    root_path: str,
+    filesystem: str,
+    s3_region: str,
+    s3_bucket: str | None,
+) -> FileSystem:
     """Get the filesystem to use."""
     predef_dirs = [e.value for e in models.UploadFileTypes] + [
         e.value for e in models.OutputEndpoints
     ]
-    if settings.filesystem == "s3":
+    if filesystem == "s3":
+        assert s3_bucket is not None, "S3 bucket must be provided for S3 filesystem"
         s3_client = boto3.client(
             "s3",
-            region_name=settings.s3_region,
-            endpoint_url=f"https://s3.{settings.s3_region}.amazonaws.com",
+            region_name=s3_region,
+            endpoint_url=f"https://s3.{s3_region}.amazonaws.com",
             config=Config(signature_version="v4", s3={"addressing_style": "path"}),
         )
         # this and config=... required to avoid DNS problems with new buckets
         s3_client.meta.events.unregister("before-sign.s3", fix_s3_host)
-        return S3Filesystem(
-            root_path, s3_client, cast(str, settings.s3_bucket), predef_dirs=predef_dirs
-        )
-    elif settings.filesystem == "local":
+        return S3Filesystem(root_path, s3_client, s3_bucket, predef_dirs=predef_dirs)
+    elif filesystem == "local":
         return LocalFilesystem(root_path, predef_dirs=predef_dirs)
     else:
         raise ValueError("Invalid filesystem setting")
 
 
-def get_user_filesystem(user_id: str) -> FileSystem:
+def user_filesystem_getter(
+    user_data_root_path: str,
+    filesystem: str,
+    s3_region: str,
+    s3_bucket: str | None,
+) -> Callable[[str], FileSystem]:
     """Get the filesystem to use for a user."""
-    return get_filesystem_with_root(str(Path(settings.user_data_root_path) / user_id))
+    return lambda user_id: get_filesystem_with_root(
+        str(Path(user_data_root_path) / user_id),
+        filesystem=filesystem,
+        s3_region=s3_region,
+        s3_bucket=s3_bucket,
+    )
