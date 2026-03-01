@@ -1,42 +1,60 @@
-from typing import Any, Callable
+from typing import Any, Callable, Generator
 
+import boto3
 import requests
-from fastapi import Depends, Header, HTTPException, Request
+from botocore.config import Config
+from botocore.utils import fix_s3_host
+from fastapi import Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
-from fastapi.security import HTTPAuthorizationCredentials
-from fastapi_cloudauth.cognito import CognitoClaims, CognitoCurrentUser  # type: ignore
-from pydantic import BaseModel, Field
+from fastapi_cloudauth.cognito import CognitoClaims  # type: ignore
+from sqlalchemy.orm import Session, sessionmaker
 
 from api import settings
 from api.core import notifications
+from api.core.auth import APIKeyDependency, UserGroupCognitoCurrentUser
+from api.core.database import Database, SqliteDatabase
 from api.core.filesystem import FileSystem, user_filesystem_getter
 from api.schemas.job import QueueJob
 
-
-class GroupClaims(CognitoClaims):  # type: ignore
-    """CognitoClaims with added groups claim."""
-
-    cognito_groups: list[str] | None = Field(alias="cognito:groups")
-
-
-class UserGroupCognitoCurrentUser(CognitoCurrentUser):  # type: ignore
-    """
-    Check membership in the 'users' group and add group membership information.
-    """
-
-    user_info = GroupClaims
-
-    async def call(
-        self, http_auth: HTTPAuthorizationCredentials
-    ) -> BaseModel | dict[str, Any] | None:
-        user_info = await super().call(http_auth)
-        if "users" not in (getattr(user_info, "cognito_groups") or []):
-            raise HTTPException(
-                status_code=403, detail="Not a member of the 'users' group"
-            )
-        return user_info  # type: ignore
+# S3 client setup
+s3_client = None
+if settings.s3_bucket:
+    s3_client = boto3.client(
+        "s3",
+        region_name=settings.s3_region,
+        endpoint_url=f"https://s3.{settings.s3_region}.amazonaws.com",
+        config=Config(signature_version="v4", s3={"addressing_style": "path"}),
+    )
+    # this and config=... required to avoid DNS problems with new buckets
+    s3_client.meta.events.unregister("before-sign.s3", fix_s3_host)
 
 
+# Database
+if settings.database_url.startswith("sqlite"):
+    db: Database = SqliteDatabase(
+        db_url=settings.database_url,
+        s3_client=s3_client,
+        s3_bucket=settings.s3_bucket,
+    )
+else:
+    db = Database(db_url=settings.database_url)
+
+
+async def db_dep() -> Database:
+    return db
+
+
+def session_dep(db_dep: Database = Depends(db_dep)) -> Generator[Session, Any, None]:
+    """Get database session."""
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=db_dep.engine)
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+# User authentication
 current_user_dep = UserGroupCognitoCurrentUser(
     region=settings.cognito_region,
     userPoolId=settings.cognito_user_pool_id,
@@ -52,12 +70,13 @@ async def current_user_global_dep(
     return current_user
 
 
+# Filesystem
 async def filesystem_getter_dep() -> Callable[[str], FileSystem]:
     """Get the user's filesystem getter."""
     return user_filesystem_getter(
         user_data_root_path=settings.user_data_root_path,
         filesystem=settings.filesystem,
-        s3_region=settings.s3_region,
+        s3_client=s3_client,
         s3_bucket=settings.s3_bucket,
     )
 
@@ -70,20 +89,11 @@ async def user_filesystem_dep(
     return filesystem_getter(current_user.username)
 
 
-class APIKeyDependency:
-    def __init__(self, key: str | None):
-        """Check API-internal key."""
-        self.key = key
-
-    def __call__(self, x_api_key: str | None = Header(...)) -> str | None:
-        if x_api_key != self.key:
-            raise HTTPException(status_code=401, detail="unauthorized")
-        return x_api_key
-
-
+# App-internal authentication (i.e. user-facing API <-> worker-facing API)
 workerfacing_api_auth_dep = APIKeyDependency(settings.internal_api_key_secret)
 
 
+# Notifications
 async def email_sender_dep() -> notifications.EmailSender:
     """Get the email sender."""
     service = settings.email_sender_service
@@ -110,6 +120,7 @@ async def email_sender_dep() -> notifications.EmailSender:
             )
 
 
+# Job enqueueing to worker-facing API
 async def enqueueing_function_dep() -> Callable[[QueueJob], None]:
     def enqueue(queue_item: QueueJob) -> None:
         resp = requests.post(

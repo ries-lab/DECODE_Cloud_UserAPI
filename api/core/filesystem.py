@@ -7,11 +7,8 @@ import zipfile
 from pathlib import Path, PurePosixPath
 from typing import Any, BinaryIO, Callable, Generator
 
-import boto3
 import humanize
-from botocore.client import Config
 from botocore.response import StreamingBody
-from botocore.utils import fix_s3_host
 from fastapi import Request
 from fastapi.responses import FileResponse, StreamingResponse
 from mypy_boto3_s3 import S3Client
@@ -390,23 +387,16 @@ class S3Filesystem(FileSystem):
 def get_filesystem_with_root(
     root_path: str,
     filesystem: str,
-    s3_region: str,
-    s3_bucket: str | None,
+    s3_bucket: str | None = None,
+    s3_client: S3Client | None = None,
 ) -> FileSystem:
     """Get the filesystem to use."""
     predef_dirs = [e.value for e in models.UploadFileTypes] + [
         e.value for e in models.OutputEndpoints
     ]
     if filesystem == "s3":
+        assert s3_client is not None, "S3 client must be provided for S3 filesystem"
         assert s3_bucket is not None, "S3 bucket must be provided for S3 filesystem"
-        s3_client = boto3.client(
-            "s3",
-            region_name=s3_region,
-            endpoint_url=f"https://s3.{s3_region}.amazonaws.com",
-            config=Config(signature_version="v4", s3={"addressing_style": "path"}),
-        )
-        # this and config=... required to avoid DNS problems with new buckets
-        s3_client.meta.events.unregister("before-sign.s3", fix_s3_host)
         return S3Filesystem(root_path, s3_client, s3_bucket, predef_dirs=predef_dirs)
     elif filesystem == "local":
         return LocalFilesystem(root_path, predef_dirs=predef_dirs)
@@ -417,13 +407,13 @@ def get_filesystem_with_root(
 def user_filesystem_getter(
     user_data_root_path: str,
     filesystem: str,
-    s3_region: str,
-    s3_bucket: str | None,
+    s3_bucket: str | None = None,
+    s3_client: S3Client | None = None,
 ) -> Callable[[str], FileSystem]:
     """Get the filesystem to use for a user."""
     return lambda user_id: get_filesystem_with_root(
         str(Path(user_data_root_path) / user_id),
         filesystem=filesystem,
-        s3_region=s3_region,
         s3_bucket=s3_bucket,
+        s3_client=s3_client,
     )

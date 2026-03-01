@@ -1,21 +1,24 @@
 import abc
 import json
 import os
-from typing import Any, cast
+from typing import Any
 
 import boto3
 import yaml
 
 
-def _load_possibly_aws_secret(name: str) -> str | None:
-    """Load environment variable and read password if it is a secret from AWS Secrets Manager."""
-    value = os.environ.get(name)
-    if not value:
-        return value
-    try:
-        return cast(str, json.loads(value)["password"])  # AWS Secrets Manager
-    except json.JSONDecodeError:
-        return value
+def get_secret_from_env(secret_name: str) -> str | None:
+    secret = os.environ.get(secret_name)
+    if secret:  # exists and not None
+        try:
+            secret = json.loads(secret)["password"]  # AWS Secrets Manager
+        except json.JSONDecodeError:
+            pass
+    return secret
+
+
+# Cron job intervals
+cron_backup_interval = 3600  # 1 hour
 
 
 # Stage
@@ -25,7 +28,7 @@ auth = bool(int(os.environ.get("AUTH", "0")))
 # Data
 database_url = os.environ.get("DATABASE_URL", "sqlite:///./sql_app.db")
 if os.environ.get("DATABASE_SECRET"):  # set and not None
-    database_secret = _load_possibly_aws_secret("DATABASE_SECRET")
+    database_secret = get_secret_from_env("DATABASE_SECRET")
     database_url = database_url.format(database_secret)
 filesystem = os.environ.get("FILESYSTEM", "local")
 s3_bucket = os.environ.get("S3_BUCKET")
@@ -35,14 +38,14 @@ user_data_root_path = os.environ.get("USER_DATA_ROOT_PATH", "/data")
 
 # Worker-facing API
 workerfacing_api_url = os.environ.get("WORKERFACING_API_URL", "http://127.0.0.1:8001")
-internal_api_key_secret = _load_possibly_aws_secret("INTERNAL_API_KEY_SECRET")
+internal_api_key_secret = get_secret_from_env("INTERNAL_API_KEY_SECRET")
 
 
 # Authentication
 cognito_user_pool_id = os.environ.get("COGNITO_USER_POOL_ID", "")
 cognito_region = os.environ.get("COGNITO_REGION", "eu-central-1")
 cognito_client_id = os.environ.get("COGNITO_CLIENT_ID", "")
-cognito_secret = _load_possibly_aws_secret("COGNITO_SECRET")
+cognito_secret = get_secret_from_env("COGNITO_SECRET")
 
 
 # Email sender

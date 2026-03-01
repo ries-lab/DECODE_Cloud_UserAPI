@@ -1,7 +1,7 @@
 import datetime
 import secrets
 import time
-from typing import Any
+from typing import Any, Generator
 from unittest.mock import MagicMock
 
 import boto3
@@ -39,7 +39,7 @@ class RDSTestingInstance:
         self.add_ingress_rule()
         self.db_url = self.create_db_url()
         self.engine = self.get_engine()
-        self.delete_db_tables()
+        self.cleanup()
 
     def get_engine(self) -> Engine:
         for _ in range(5):
@@ -78,7 +78,20 @@ class RDSTestingInstance:
             else:
                 raise e
 
-    def delete_db_tables(self) -> None:
+    def remove_ingress_rules(self) -> None:
+        # cleans up earlier tests too (in case of failures)
+        security_groups = self.ec2_client.describe_security_groups(
+            GroupNames=[self.vpc_sg_rule_params["GroupName"]]
+        )
+        for sg in security_groups["SecurityGroups"]:
+            for rule in sg["IpPermissions"]:
+                if rule.get("FromPort") == 5432 and rule.get("ToPort") == 5432:
+                    self.ec2_client.revoke_security_group_ingress(
+                        GroupId=sg["GroupId"],
+                        IpPermissions=[rule],  # type: ignore
+                    )
+
+    def cleanup(self) -> None:
         metadata = MetaData()
         engine = self.engine
         metadata.reflect(engine)
@@ -137,11 +150,11 @@ class RDSTestingInstance:
         address = response["DBInstances"][0]["Endpoint"]["Address"]
         return f"postgresql://{user}:{password}@{address}:5432/{self.db_name}"
 
-    def cleanup(self) -> None:
-        self.delete_db_tables()
-        self.ec2_client.revoke_security_group_ingress(**self.vpc_sg_rule_params)
-
     def delete(self) -> None:
+        # never used (AWS tests skipped)
+        if not hasattr(self, "rds_client"):
+            return
+        self.remove_ingress_rules()
         self.rds_client.delete_db_instance(
             DBInstanceIdentifier=self.db_name,
             SkipFinalSnapshot=True,
@@ -188,20 +201,33 @@ class S3TestingBucket:
         return True
 
     def delete(self) -> None:
+        # never used (AWS tests skipped)
+        if not hasattr(self, "s3_client"):
+            return
         exists = self.cleanup()
         if exists:
             self.s3_client.delete_bucket(Bucket=self.bucket_name)
 
 
 @pytest.fixture(scope="session")
-def rds_testing_instance() -> RDSTestingInstance:
-    return RDSTestingInstance("decodecloudintegrationtestsuserapi")
+def rds_testing_instance() -> Generator[RDSTestingInstance, Any, None]:
+    # tests themselves must create the instance by calling instance.create();
+    # this way, if no test that needs the DB is run, no RDS instance is created
+    # instance.delete() only deletes the RDS instance if it was created
+    instance = RDSTestingInstance("decodecloudintegrationtestsworkerapi")
+    yield instance
+    instance.delete()
 
 
 @pytest.fixture(scope="session")
-def s3_testing_bucket() -> S3TestingBucket:
+def s3_testing_bucket() -> Generator[S3TestingBucket, Any, None]:
+    # tests themselves must create the bucket by calling bucket.create();
+    # this way, if no test that needs the bucket is run, no S3 bucket is created
+    # bucket.delete() only deletes the S3 bucket if it was created
     bucket_suffix = datetime.datetime.now(datetime.UTC).strftime("%Y%m%d%H%M%S")
-    return S3TestingBucket(bucket_suffix)
+    bucket = S3TestingBucket(bucket_suffix)
+    yield bucket
+    bucket.delete()
 
 
 @pytest.mark.aws
