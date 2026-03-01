@@ -318,6 +318,7 @@ def job_defs(
     return [job1, job2]
 
 
+@pytest.fixture
 def jobs(job_defs: list[Job], db_session: Session) -> list[Job]:
     for job in job_defs:
         db_session.add(job)
