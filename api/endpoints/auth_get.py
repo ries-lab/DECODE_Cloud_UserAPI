@@ -2,7 +2,8 @@ import enum
 
 from fastapi import APIRouter, Depends
 
-from api.dependencies import GroupClaims, current_user_dep
+from api.core.auth import GroupClaims
+from api.dependencies import current_user_dep
 from api.schemas.user import User
 from api.settings import cognito_client_id, cognito_region, cognito_user_pool_id
 

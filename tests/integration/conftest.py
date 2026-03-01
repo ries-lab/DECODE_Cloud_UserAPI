@@ -111,11 +111,12 @@ def filesystem_getter(
     base_user_dir: str,
     s3_testing_bucket: S3TestingBucket,
 ) -> Callable[[str], FileSystem]:
+    s3_fs = isinstance(base_filesystem, S3Filesystem)
     return user_filesystem_getter(
         user_data_root_path=base_user_dir,
-        filesystem="s3" if isinstance(base_filesystem, S3Filesystem) else "local",
-        s3_bucket=s3_testing_bucket.bucket_name,
-        s3_client=s3_testing_bucket.s3_client,
+        filesystem="s3" if s3_fs else "local",
+        s3_bucket=s3_testing_bucket.bucket_name if s3_fs else None,
+        s3_client=s3_testing_bucket.s3_client if s3_fs else None,
     )
 
 
@@ -127,12 +128,22 @@ def user_filesystem(
 
 
 @pytest.fixture(autouse=True)
-def override_db_dep(db: Database, monkeypatch: pytest.MonkeyPatch) -> None:
+def override_db_dep(
+    db: Database,
+    rds_testing_instance: RDSTestingInstance,
+    monkeypatch: pytest.MonkeyPatch,
+) -> Generator[None, None, None]:
     monkeypatch.setitem(
         app.dependency_overrides,  # type: ignore
         db_dep,
         lambda: db,
     )
+    yield
+    # Cleanup after every test
+    if isinstance(db, SqliteDatabase):
+        db.empty()
+    else:
+        rds_testing_instance.cleanup()
 
 
 @pytest.fixture(autouse=True)
@@ -267,6 +278,12 @@ def job_attrs() -> dict[str, Any]:
         "files_down": {"data_ids": ["test"], "config_id": "test", "artifact_ids": []},
         "env_vars": {},
     }
+
+
+@pytest.fixture
+def db_session(db: Database) -> Generator[Session, None, None]:
+    with Session(db.engine) as session:
+        yield session
 
 
 @pytest.fixture

@@ -32,7 +32,9 @@ def list_jobs(
     db: Session = Depends(session_dep),
 ) -> list[Job]:
     db_jobs = crud.get_jobs(db, request.state.current_user.username, offset, limit)
-    jobs = [Job.model_validate(db_job) for db_job in db_jobs]  # models -> schemas
+    jobs = [
+        Job.model_validate(db_job, from_attributes=True) for db_job in db_jobs
+    ]  # models -> schemas
     return sorted(jobs, key=lambda x: x.date_created, reverse=True)
 
 
@@ -45,7 +47,7 @@ def describe_job(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Job not found"
         )
-    return Job.model_validate(db_job)
+    return Job.model_validate(db_job, from_attributes=True)
 
 
 @router.post(
@@ -70,7 +72,7 @@ def start_job(
             user_id=request.state.current_user.username,
             user_email=request.state.current_user.email,
         )
-        return Job.model_validate(db_job)
+        return Job.model_validate(db_job, from_attributes=True)
     except FileNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 

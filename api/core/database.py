@@ -49,6 +49,11 @@ class Database:
         """Backup the database. To be implemented by subclasses if supported."""
         return False
 
+    def empty(self) -> None:
+        """Empty the database by dropping and recreating all tables."""
+        Base.metadata.drop_all(bind=self.engine)
+        Base.metadata.create_all(bind=self.engine)
+
 
 class SqliteDatabase(Database):
     """SQLite database wrapper with optional S3 backup support."""
