@@ -287,12 +287,11 @@ def db_session(db: Database) -> Generator[Session, None, None]:
 
 
 @pytest.fixture
-def jobs(
+def job_defs(
     test_username: str,
     test_user_email: str,
     application: dict[str, str],
     job_attrs: dict[str, Any],
-    db_session: Session,
 ) -> list[Job]:
     job1 = Job(
         id=42,
@@ -316,10 +315,14 @@ def jobs(
         hardware={},
         paths_out={"output": "out", "log": "log", "artifact": "model"},
     )
-    for job in [job1, job2]:
+    return [job1, job2]
+
+
+def jobs(job_defs: list[Job], db_session: Session) -> list[Job]:
+    for job in job_defs:
         db_session.add(job)
     db_session.commit()
-    return [job1, job2]
+    return job_defs
 
 
 @pytest.fixture

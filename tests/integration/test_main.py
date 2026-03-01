@@ -57,7 +57,7 @@ class TestCronBackupDatabase:
     def test_sqlite_backup(
         self,
         db: SqliteDatabase,
-        jobs: list[Job],
+        job_defs: list[Job],
         client: TestClient,
         s3_testing_bucket: S3TestingBucket,
         tmpdir_factory: pytest.TempdirFactory,
@@ -75,14 +75,14 @@ class TestCronBackupDatabase:
 
             # Enqueue a job and verify it's backed up
             with Session(db.engine) as session:
-                session.add(jobs[0])
+                session.add(job_defs[0])
                 session.commit()
             time.sleep(2)  # wait for backup to run
             assert self.get_backup_nrows(s3_testing_bucket) == 1
 
             # Enqueue a second job and shutdown before backup runs
             with Session(db.engine) as session:
-                session.add(jobs[1])
+                session.add(job_defs[1])
                 session.commit()
 
         # On shutdown, final backup should run with both jobs
