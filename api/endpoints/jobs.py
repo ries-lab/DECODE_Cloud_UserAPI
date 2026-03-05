@@ -3,9 +3,9 @@ from typing import Any, Callable
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
-import api.database as database
+from api.core.filesystem import FileSystem
 from api.crud import job as crud
-from api.dependencies import enqueueing_function_dep
+from api.dependencies import enqueueing_function_dep, session_dep, user_filesystem_dep
 from api.schemas.job import Job, JobCreate, QueueJob
 from api.settings import application_config
 
@@ -29,25 +29,25 @@ def list_jobs(
     request: Request,
     offset: int = 0,
     limit: int = 100,
-    db: Session = Depends(database.get_db),
+    db: Session = Depends(session_dep),
 ) -> list[Job]:
-    return sorted(
-        crud.get_jobs(db, request.state.current_user.username, offset, limit),
-        key=lambda x: x.date_created,
-        reverse=True,
-    )
+    db_jobs = crud.get_jobs(db, request.state.current_user.username, offset, limit)
+    jobs = [
+        Job.model_validate(db_job, from_attributes=True) for db_job in db_jobs
+    ]  # models -> schemas
+    return sorted(jobs, key=lambda x: x.date_created, reverse=True)
 
 
 @router.get("/jobs/{job_id}", response_model=Job, description="Describe a job")
 def describe_job(
-    request: Request, job_id: int, db: Session = Depends(database.get_db)
+    request: Request, job_id: int, db: Session = Depends(session_dep)
 ) -> Job:
     db_job = crud.get_job(db, job_id)
     if db_job is None or db_job.user_id != request.state.current_user.username:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Job not found"
         )
-    return db_job
+    return Job.model_validate(db_job, from_attributes=True)
 
 
 @router.post(
@@ -59,17 +59,20 @@ def describe_job(
 def start_job(
     request: Request,
     job: JobCreate,
-    db: Session = Depends(database.get_db),
+    db: Session = Depends(session_dep),
+    filesystem: FileSystem = Depends(user_filesystem_dep),
     enqueueing_func: Callable[[QueueJob], None] = Depends(enqueueing_function_dep),
 ) -> Job:
     try:
-        return crud.create_job(
+        db_job = crud.create_job(
             db,
+            filesystem,
             enqueueing_func,
             job,
             user_id=request.state.current_user.username,
             user_email=request.state.current_user.email,
         )
+        return Job.model_validate(db_job, from_attributes=True)
     except FileNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -81,11 +84,14 @@ def start_job(
     description="Delete a job",
 )
 def delete_job(
-    request: Request, job_id: int, db: Session = Depends(database.get_db)
+    request: Request,
+    job_id: int,
+    db: Session = Depends(session_dep),
+    filesystem: FileSystem = Depends(user_filesystem_dep),
 ) -> None:
     db_job = crud.get_job(db, job_id)
     if db_job is None or db_job.user_id != request.state.current_user.username:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Job not found"
         )
-    crud.delete_job(db, db_job)
+    crud.delete_job(db, filesystem, db_job)

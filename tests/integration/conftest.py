@@ -1,43 +1,42 @@
-import os
 import shutil
 from io import BytesIO
-from typing import Any, Generator, cast
+from typing import Any, Callable, Generator
 from unittest.mock import Mock
 
 import pytest
-from fastapi.testclient import TestClient
 from fastapi_cloudauth.cognito import CognitoClaims  # type: ignore
-from sqlalchemy import create_engine
+from mypy_boto3_s3 import S3Client
 from sqlalchemy.orm import Session
 
 from api import settings
 from api.core import notifications
+from api.core.auth import APIKeyDependency
+from api.core.database import Database, SqliteDatabase
 from api.core.filesystem import (
     FileSystem,
     LocalFilesystem,
     S3Filesystem,
-    get_user_filesystem,
+    user_filesystem_getter,
 )
-from api.database import Base, get_db
 from api.dependencies import (
-    APIKeyDependency,
     current_user_dep,
+    db_dep,
     email_sender_dep,
-    filesystem_dep,
+    filesystem_getter_dep,
     workerfacing_api_auth_dep,
 )
 from api.main import app
 from api.models import Job
-from tests.conftest import REGION_NAME, RDSTestingInstance, S3TestingBucket
+from tests.conftest import RDSTestingInstance, S3TestingBucket
 
 
 @pytest.fixture(scope="session")
-def username() -> str:
+def test_username() -> str:
     return "test_user"
 
 
 @pytest.fixture(scope="session")
-def user_email() -> str:
+def test_user_email() -> str:
     return "user@example.com"
 
 
@@ -58,156 +57,155 @@ def application() -> dict[str, str]:
 
 @pytest.fixture(
     scope="session",
-    params=["local", pytest.param("aws", marks=pytest.mark.aws)],
+    params=["local-fs", pytest.param("aws-fs", marks=pytest.mark.aws)],
 )
-def env(
-    request: pytest.FixtureRequest,
-    rds_testing_instance: RDSTestingInstance,
-    s3_testing_bucket: S3TestingBucket,
-) -> Generator[str, Any, None]:
-    env = cast(str, request.param)
-    if env == "aws":
-        rds_testing_instance.create()
-        s3_testing_bucket.create()
-    yield env
-    if env == "aws":
-        rds_testing_instance.delete()
-        s3_testing_bucket.delete()
-
-
-@pytest.fixture
-def db_session(
-    env: str, rds_testing_instance: RDSTestingInstance
-) -> Generator[Session, Any, None]:
-    if env == "local":
-        rel_test_db_path = "./test_app.db"
-        shutil.rmtree(rel_test_db_path, ignore_errors=True)
-        engine = create_engine(
-            f"sqlite:///{rel_test_db_path}", connect_args={"check_same_thread": False}
-        )
-    elif env == "aws":
-        engine = rds_testing_instance.engine
-    else:
-        raise NotImplementedError
-
-    Base.metadata.create_all(bind=engine)
-    with Session(engine) as session:
-        yield session
-
-    if env == "local":
-        os.remove(rel_test_db_path)
-    elif env == "aws":
-        rds_testing_instance.cleanup()
-
-
-@pytest.fixture
 def base_filesystem(
-    env: str,
     base_user_dir: str,
-    monkeypatch_module: pytest.MonkeyPatch,
     s3_testing_bucket: S3TestingBucket,
-) -> Generator[FileSystem, Any, None]:
-    if env == "local":
-        base_user_dir = f"./{base_user_dir}"
-
-    monkeypatch_module.setattr(
-        settings,
-        "user_data_root_path",
-        base_user_dir,
-    )
-    monkeypatch_module.setattr(
-        settings,
-        "s3_region",
-        REGION_NAME,
-    )
-    monkeypatch_module.setattr(
-        settings,
-        "filesystem",
-        "local" if env == "local" else "s3",
-    )
-
-    if env == "local":
-        shutil.rmtree(base_user_dir, ignore_errors=True)
-        yield LocalFilesystem(base_user_dir)
-        shutil.rmtree(base_user_dir, ignore_errors=True)
-
-    elif env == "aws":
-        # Update settings to use the actual unique bucket name created by S3TestingBucket
-        monkeypatch_module.setattr(
-            settings,
-            "s3_bucket",
-            s3_testing_bucket.bucket_name,
-        )
-        yield S3Filesystem(
+    request: pytest.FixtureRequest,
+) -> FileSystem:
+    if request.param == "local-fs":
+        return LocalFilesystem(base_user_dir)
+    elif request.param == "aws-fs":
+        s3_testing_bucket.create()
+        return S3Filesystem(
             base_user_dir, s3_testing_bucket.s3_client, s3_testing_bucket.bucket_name
         )
-        s3_testing_bucket.cleanup()
+    else:
+        raise NotImplementedError
 
+
+@pytest.fixture(
+    scope="session",
+    params=["local-db", pytest.param("aws-db", marks=pytest.mark.aws)],
+)
+def db(
+    base_filesystem: FileSystem,
+    s3_testing_bucket: S3TestingBucket,
+    rds_testing_instance: RDSTestingInstance,
+    tmpdir_factory: pytest.TempdirFactory,
+    request: pytest.FixtureRequest,
+) -> Database:
+    if request.param == "local-db":
+        test_db_path = tmpdir_factory.mktemp("integration") / "test_app.db"
+        s3_bucket: str | None = None
+        s3_client: S3Client | None = None
+        if isinstance(base_filesystem, S3Filesystem):
+            s3_bucket = s3_testing_bucket.bucket_name
+            s3_client = s3_testing_bucket.s3_client
+        return SqliteDatabase(
+            db_url=f"sqlite:///{test_db_path}", s3_client=s3_client, s3_bucket=s3_bucket
+        )
+    elif request.param == "aws-db":
+        if isinstance(base_filesystem, LocalFilesystem):
+            pytest.skip("Only testing RDS DB in combination with S3 filesystem")
+        rds_testing_instance.create()
+        return Database(db_url=rds_testing_instance.db_url)
     else:
         raise NotImplementedError
 
 
 @pytest.fixture
-def user_filesystem(base_filesystem: FileSystem, username: str) -> FileSystem:
-    return get_user_filesystem(username)
+def filesystem_getter(
+    base_filesystem: FileSystem,
+    base_user_dir: str,
+    s3_testing_bucket: S3TestingBucket,
+) -> Callable[[str], FileSystem]:
+    s3_fs = isinstance(base_filesystem, S3Filesystem)
+    return user_filesystem_getter(
+        user_data_root_path=base_user_dir,
+        filesystem="s3" if s3_fs else "local",
+        s3_bucket=s3_testing_bucket.bucket_name if s3_fs else None,
+        s3_client=s3_testing_bucket.s3_client if s3_fs else None,
+    )
+
+
+@pytest.fixture
+def user_filesystem(
+    filesystem_getter: Callable[[str], FileSystem], test_username: str
+) -> FileSystem:
+    return filesystem_getter(test_username)
 
 
 @pytest.fixture(autouse=True)
 def override_db_dep(
-    db_session: Session, monkeypatch_module: pytest.MonkeyPatch
-) -> None:
-    monkeypatch_module.setitem(
+    db: Database,
+    rds_testing_instance: RDSTestingInstance,
+    monkeypatch: pytest.MonkeyPatch,
+) -> Generator[None, None, None]:
+    async def _override_db() -> Database:
+        return db
+
+    monkeypatch.setitem(
         app.dependency_overrides,  # type: ignore
-        get_db,
-        lambda: db_session,
+        db_dep,
+        _override_db,
+    )
+    yield
+    # Cleanup after every test
+    if isinstance(db, SqliteDatabase):
+        db.empty()
+    else:
+        rds_testing_instance.cleanup()
+
+
+@pytest.fixture(autouse=True)
+def override_user_filesystem_getter(
+    filesystem_getter: Callable[[str], FileSystem],
+    base_filesystem: FileSystem,
+    s3_testing_bucket: S3TestingBucket,
+    base_user_dir: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> Generator[None, None, None]:
+    monkeypatch.setitem(
+        app.dependency_overrides,  # type: ignore
+        filesystem_getter_dep,
+        lambda: filesystem_getter,
+    )
+    yield
+    # cleanup after every test
+    if isinstance(base_filesystem, S3Filesystem):
+        s3_testing_bucket.cleanup()
+    else:
+        shutil.rmtree(base_user_dir, ignore_errors=True)
+
+
+@pytest.fixture(autouse=True)
+def override_auth(
+    monkeypatch: pytest.MonkeyPatch, test_username: str, test_user_email: str
+) -> None:
+    monkeypatch.setitem(
+        app.dependency_overrides,  # type: ignore
+        current_user_dep,
+        lambda: CognitoClaims(
+            **{"cognito:username": test_username, "email": test_user_email}
+        ),
     )
 
 
 @pytest.fixture(autouse=True)
-def override_filesystem_dep(
-    user_filesystem: FileSystem, monkeypatch_module: pytest.MonkeyPatch
-) -> None:
-    monkeypatch_module.setitem(
-        app.dependency_overrides,  # type: ignore
-        filesystem_dep,
-        lambda: user_filesystem,
-    )
-
-
-@pytest.fixture(autouse=True, scope="session")
-def override_auth(
-    monkeypatch_module: pytest.MonkeyPatch, username: str, user_email: str
-) -> None:
-    monkeypatch_module.setitem(
-        app.dependency_overrides,  # type: ignore
-        current_user_dep,
-        lambda: CognitoClaims(**{"cognito:username": username, "email": user_email}),
-    )
-
-
-@pytest.fixture(scope="session", autouse=True)
 def override_internal_api_key_secret(
-    monkeypatch_module: pytest.MonkeyPatch, internal_api_key_secret: str
+    monkeypatch: pytest.MonkeyPatch, internal_api_key_secret: str
 ) -> None:
-    monkeypatch_module.setitem(
+    monkeypatch.setitem(
         app.dependency_overrides,  # type: ignore
         workerfacing_api_auth_dep,
         APIKeyDependency(internal_api_key_secret),
     )
 
 
-@pytest.fixture(scope="session", autouse=True)
-def override_email_sender(monkeypatch_module: pytest.MonkeyPatch) -> None:
-    monkeypatch_module.setitem(
+@pytest.fixture(autouse=True)
+def override_email_sender(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(
         app.dependency_overrides,  # type: ignore
         email_sender_dep,
         lambda: notifications.DummyEmailSender(),
     )
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(autouse=True)
 def override_application_config(
-    monkeypatch_module: pytest.MonkeyPatch, application: dict[str, str]
+    monkeypatch: pytest.MonkeyPatch, application: dict[str, str]
 ) -> None:
     application_config = Mock()
     application_config.config = {
@@ -236,17 +234,12 @@ def override_application_config(
             },
         },
     }
-    monkeypatch_module.setattr(settings, "application_config", application_config)
+    monkeypatch.setattr(settings, "application_config", application_config)
 
 
 @pytest.fixture
 def require_auth(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delitem(app.dependency_overrides, current_user_dep)  # type: ignore
-
-
-@pytest.fixture
-def client() -> TestClient:
-    return TestClient(app)
 
 
 @pytest.fixture
@@ -291,17 +284,22 @@ def job_attrs() -> dict[str, Any]:
 
 
 @pytest.fixture
-def jobs(
-    username: str,
-    user_email: str,
+def db_session(db: Database) -> Generator[Session, None, None]:
+    with Session(db.engine) as session:
+        yield session
+
+
+@pytest.fixture
+def job_defs(
+    test_username: str,
+    test_user_email: str,
     application: dict[str, str],
     job_attrs: dict[str, Any],
-    db_session: Session,
 ) -> list[Job]:
     job1 = Job(
         id=42,
-        user_id=username,
-        user_email=user_email,
+        user_id=test_username,
+        user_email=test_user_email,
         job_name="job_test_1",
         environment="cloud",
         application=application,
@@ -311,8 +309,8 @@ def jobs(
     )
     job2 = Job(
         id=50,
-        user_id=username,
-        user_email=user_email,
+        user_id=test_username,
+        user_email=test_user_email,
         job_name="job_test_2",
         environment=None,
         application=application,
@@ -320,10 +318,15 @@ def jobs(
         hardware={},
         paths_out={"output": "out", "log": "log", "artifact": "model"},
     )
-    for job in [job1, job2]:
+    return [job1, job2]
+
+
+@pytest.fixture
+def jobs(job_defs: list[Job], db_session: Session) -> list[Job]:
+    for job in job_defs:
         db_session.add(job)
     db_session.commit()
-    return [job1, job2]
+    return job_defs
 
 
 @pytest.fixture

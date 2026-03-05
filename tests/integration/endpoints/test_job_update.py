@@ -10,7 +10,9 @@ from api.models import Job
 ENDPOINT = "/_job_status"
 
 
-def test_job_status_init(db_session: Session, jobs: list[Job]) -> None:
+def test_job_status_init(
+    db_session: Session, client: TestClient, jobs: list[Job]
+) -> None:
     job = db_session.query(Job).first()
     assert job is not None
     assert job.status == "queued"
@@ -38,6 +40,7 @@ def test_job_status_update(
         headers={"x-api-key": internal_api_key_secret},
     )
     assert response.status_code == 200
+    db_session.refresh(jobs[0])
     job = db_session.query(Job).filter(Job.id == jobs[0].id).first()
     assert job is not None
     assert job.status == "running"

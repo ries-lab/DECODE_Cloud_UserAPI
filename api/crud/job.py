@@ -6,15 +6,15 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from api import models, settings
-from api.core.filesystem import FileSystem, get_user_filesystem
+from api.core.filesystem import FileSystem
 from api.schemas import job as schemas
 
 
 def enqueue_job(
-    job: models.Job, enqueueing_func: Callable[[schemas.QueueJob], None]
+    job: models.Job,
+    filesystem: FileSystem,
+    enqueueing_func: Callable[[schemas.QueueJob], None],
 ) -> None:
-    user_fs = get_user_filesystem(user_id=job.user_id)
-
     app = job.application
     job_config = settings.application_config.config[app["application"]][app["version"]][
         app["entrypoint"]
@@ -47,14 +47,14 @@ def enqueue_job(
         f"artifact/{artifact_id}"
         for artifact_id in job.attributes["files_down"]["artifact_ids"]
     ]
-    _validate_files(user_fs, [config_path] + data_paths + artifact_paths)
+    _validate_files(filesystem, [config_path] + data_paths + artifact_paths)
     roots_down = handler_config["files_down"]
-    files_down = prepare_files(config_path, roots_down["config_id"], user_fs)
+    files_down = prepare_files(config_path, roots_down["config_id"], filesystem)
     for data_path in data_paths:
-        files_down.update(prepare_files(data_path, roots_down["data_ids"], user_fs))
+        files_down.update(prepare_files(data_path, roots_down["data_ids"], filesystem))
     for artifact_path in artifact_paths:
         files_down.update(
-            prepare_files(artifact_path, roots_down["artifact_ids"], user_fs)
+            prepare_files(artifact_path, roots_down["artifact_ids"], filesystem)
         )
 
     app_specs = schemas.AppSpecs(
@@ -76,9 +76,9 @@ def enqueue_job(
     )
 
     paths_upload = {
-        "output": user_fs.full_path_uri(job.paths_out["output"]),
-        "log": user_fs.full_path_uri(job.paths_out["log"]),
-        "artifact": user_fs.full_path_uri(job.paths_out["artifact"]),
+        "output": filesystem.full_path_uri(job.paths_out["output"]),
+        "log": filesystem.full_path_uri(job.paths_out["log"]),
+        "artifact": filesystem.full_path_uri(job.paths_out["artifact"]),
     }
 
     queue_item = schemas.QueueJob(
@@ -117,6 +117,7 @@ def _validate_files(filesystem: FileSystem, paths: list[str]) -> None:
 
 def create_job(
     db: Session,
+    filesystem: FileSystem,
     enqueueing_func: Callable[[schemas.QueueJob], None],
     job: schemas.JobCreate,
     user_id: int,
@@ -146,18 +147,17 @@ def create_job(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=ve,
         )
-    enqueue_job(db_job, enqueueing_func)
+    enqueue_job(db_job, filesystem, enqueueing_func)
     db.commit()
     db.refresh(db_job)
     return db_job
 
 
-def delete_job(db: Session, db_job: models.Job) -> models.Job:
+def delete_job(db: Session, filesystem: FileSystem, db_job: models.Job) -> models.Job:
     db.delete(db_job)
-    user_fs = get_user_filesystem(user_id=db_job.user_id)
     for path in db_job.paths_out.values():
         if path[-1] != "/":
             path += "/"
-        user_fs.delete(path)
+        filesystem.delete(path)
     db.commit()
     return db_job

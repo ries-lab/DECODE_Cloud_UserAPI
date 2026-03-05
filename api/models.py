@@ -10,9 +10,11 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.orm import mapped_column
+from sqlalchemy.orm import DeclarativeBase, mapped_column
 
-from api.database import Base
+
+class Base(DeclarativeBase):
+    pass
 
 
 class JobStates(enum.Enum):
@@ -43,7 +45,7 @@ class UploadFileTypes(enum.Enum):
     artifact = "artifact"
 
 
-class Job(Base):  # type: ignore
+class Job(Base):
     __tablename__ = "jobs"
 
     id = mapped_column(Integer, primary_key=True, index=True)
