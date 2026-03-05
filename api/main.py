@@ -33,7 +33,7 @@ async def cron_backup_database(db: Database) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    db = app.dependency_overrides.get(dependencies.db_dep, dependencies.db_dep)()
+    db = await app.dependency_overrides.get(dependencies.db_dep, dependencies.db_dep)()
     assert isinstance(db, Database)
     db.create()
     task_backup = asyncio.create_task(cron_backup_database(db))

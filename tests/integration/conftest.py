@@ -133,10 +133,13 @@ def override_db_dep(
     rds_testing_instance: RDSTestingInstance,
     monkeypatch: pytest.MonkeyPatch,
 ) -> Generator[None, None, None]:
+    async def _override_db() -> Database:
+        return db
+
     monkeypatch.setitem(
         app.dependency_overrides,  # type: ignore
         db_dep,
-        lambda: db,
+        _override_db,
     )
     yield
     # Cleanup after every test
