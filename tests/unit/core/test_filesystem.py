@@ -57,10 +57,8 @@ class _TestFilesystem(ABC):
     def test_list_directory_file(
         self,
         filesystem: FileSystem,
-        monkeypatch: pytest.MonkeyPatch,
         data_file1_name: str,
     ) -> None:
-        monkeypatch.setattr(filesystem, "isdir", lambda path: False)
         with pytest.raises(NotADirectoryError):
             filesystem.list_directory(data_file1_name)
 
@@ -237,9 +235,11 @@ class _TestFilesystem(ABC):
 class TestLocalFilesystem(_TestFilesystem):
     @pytest.fixture(scope="class")
     def filesystem(self, base_dir: str) -> Generator[LocalFilesystem, Any, None]:
-        fs = LocalFilesystem(base_dir)
-        yield fs
-        shutil.rmtree(base_dir, ignore_errors=True)
+        yield LocalFilesystem(base_dir)
+        try:
+            shutil.rmtree(base_dir)
+        except FileNotFoundError:
+            pass
 
     @pytest.fixture
     def data_file1(
@@ -271,7 +271,7 @@ class TestS3Filesystem(_TestFilesystem):
             yield S3Filesystem(
                 base_dir, s3_testing_bucket.s3_client, s3_testing_bucket.bucket_name
             )
-            s3_testing_bucket.delete()
+            s3_testing_bucket.cleanup()
 
     @pytest.fixture
     def data_file1(

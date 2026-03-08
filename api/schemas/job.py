@@ -1,7 +1,7 @@
 import datetime
-from typing import Any
+from typing import Self
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Field, model_validator
 
 from api import settings
 from api.models import EnvironmentTypes, JobStates, OutputEndpoints
@@ -20,32 +20,28 @@ class Application(BaseModel):
     version: str
     entrypoint: str
 
-    @validator("application")
-    def application_check(cls: "Application", v: str, values: dict[str, str]) -> str:
-        allowed = list(settings.application_config.config.keys())
-        if v not in allowed:
-            raise ValueError(f"Application must be one of {allowed}, not {v}.")
-        return v
-
-    @validator("version")
-    def version_check(cls: "Application", v: str, values: dict[str, str]) -> str:
-        if "application" not in values:
-            raise ValueError("Application must be set before version.")
-        allowed = settings.application_config.config[values["application"]].keys()
-        if v not in allowed:
-            raise ValueError(f"Version must be one of {allowed}, not {v}.")
-        return v
-
-    @validator("entrypoint")
-    def entrypoint_check(cls: "Application", v: str, values: dict[str, str]) -> str:
-        if "application" not in values or "version" not in values:
-            raise ValueError("Application and version must be set before entrypoint.")
-        allowed = settings.application_config.config[values["application"]][
-            values["version"]
-        ].keys()
-        if v not in allowed:
-            raise ValueError(f"Entrypoint must be one of {allowed}, not {v}.")
-        return v
+    @model_validator(mode="after")
+    def application_check(self) -> Self:
+        allowed_apps = list(settings.application_config.config.keys())
+        if self.application not in allowed_apps:
+            raise ValueError(
+                f"Application must be one of {allowed_apps}, not {self.application}."
+            )
+        allowed_versions = list(
+            settings.application_config.config[self.application].keys()
+        )
+        if self.version not in allowed_versions:
+            raise ValueError(
+                f"Version must be one of {allowed_versions}, not {self.version}."
+            )
+        allowed_entrypoints = list(
+            settings.application_config.config[self.application][self.version].keys()
+        )
+        if self.entrypoint not in allowed_entrypoints:
+            raise ValueError(
+                f"Entrypoint must be one of {allowed_entrypoints}, not {self.entrypoint}."
+            )
+        return self
 
 
 class InputJobAttributes(BaseModel):
@@ -62,36 +58,22 @@ class JobAttributes(BaseModel):
 class JobBase(BaseModel):
     job_name: str
     environment: EnvironmentTypes | None = None
-    priority: int | None = None
+    priority: int = Field(0, ge=0, le=5)
     application: Application
     attributes: JobAttributes
     hardware: HardwareSpecs | None = None
 
-    @validator("attributes")
-    def env_check(
-        cls: "JobBase", v: JobAttributes, values: dict[str, Any]
-    ) -> JobAttributes:
-        app = values.get("application")
-        if not app:
-            raise ValueError("Application must be set before attributes.")
-        application = (
-            app.application if hasattr(app, "application") else app["application"]
-        )
-        version = app.version if hasattr(app, "version") else app["version"]
-        entrypoint = app.entrypoint if hasattr(app, "entrypoint") else app["entrypoint"]
-        config = settings.application_config.config[application][version][entrypoint]
-        allowed = config["app"]["env"]
-        if v.env_vars is not None and not all(v_ in allowed for v_ in v.env_vars):
-            raise ValueError(f"Environment variables must be in {allowed}.")
-        return v
-
-    @validator("priority")
-    def priority_check(cls: "JobBase", v: int | None, values: dict[str, Any]) -> int:
-        if v is None:
-            v = 0
-        elif v < 0 or v > 5:
-            raise ValueError(f"Priority must be between 0 and 5, not {v}.")
-        return v
+    @model_validator(mode="after")
+    def env_check(self) -> Self:
+        config = settings.application_config.config[self.application.application][
+            self.application.version
+        ][self.application.entrypoint]
+        allowed_env_vars = config["app"]["env"]
+        if self.attributes.env_vars is not None and not all(
+            v_ in allowed_env_vars for v_ in self.attributes.env_vars
+        ):
+            raise ValueError(f"Environment variables must be in {allowed_env_vars}.")
+        return self
 
 
 class JobReadBase(BaseModel):

@@ -4,13 +4,15 @@ They are turned off in non-development environments,
 as the authentication is handled by the Cognito service.
 """
 
+from typing import Callable
+
 import boto3
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
 from api.core.aws import calculate_secret_hash
-from api.core.filesystem import get_user_filesystem
+from api.core.filesystem import FileSystem
 from api.schemas.token import TokenResponse
 from api.schemas.user import User, UserGroups
 from api.settings import cognito_client_id, cognito_secret, cognito_user_pool_id
@@ -25,7 +27,9 @@ router = APIRouter()
     description="Register a new user",
 )
 def register_user(
-    user: OAuth2PasswordRequestForm = Depends(), groups: list[UserGroups] | None = None
+    user: OAuth2PasswordRequestForm = Depends(),
+    filesystem_getter_dep: Callable[[str], FileSystem] = Depends(),
+    groups: list[UserGroups] | None = None,
 ) -> User:
     client = boto3.client("cognito-idp")
     try:
@@ -52,7 +56,7 @@ def register_user(
             Password=user.password,
             Permanent=True,
         )
-        filesystem = get_user_filesystem(response["User"]["Username"])
+        filesystem = filesystem_getter_dep(response["User"]["Username"])
         filesystem.init()
     except client.exceptions.ClientError as e:
         if e.response["Error"]["Code"] == "UsernameExistsException":

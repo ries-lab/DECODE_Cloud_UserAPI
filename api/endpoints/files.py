@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 
 from api import models
 from api.core.filesystem import FileSystem
-from api.dependencies import filesystem_dep
+from api.dependencies import user_filesystem_dep
 from api.schemas import file as file_schemas
 
 router = APIRouter()
@@ -19,7 +19,7 @@ router = APIRouter()
     description="Download a file",
 )
 def download_file(
-    file_path: str, filesystem: FileSystem = Depends(filesystem_dep)
+    file_path: str, filesystem: FileSystem = Depends(user_filesystem_dep)
 ) -> FileResponse | StreamingResponse:
     try:
         return filesystem.download(file_path)
@@ -33,7 +33,9 @@ def download_file(
     description="Get request parameters (pre-signed URL) to download a file",
 )
 def get_download_presigned_url(
-    file_path: str, request: Request, filesystem: FileSystem = Depends(filesystem_dep)
+    file_path: str,
+    request: Request,
+    filesystem: FileSystem = Depends(user_filesystem_dep),
 ) -> file_schemas.FileHTTPRequest:
     try:
         return filesystem.download_url(
@@ -52,7 +54,7 @@ def list_files(
     base_path: str = "",
     show_dirs: bool = True,
     recursive: bool = False,
-    filesystem: FileSystem = Depends(filesystem_dep),
+    filesystem: FileSystem = Depends(user_filesystem_dep),
 ) -> list[file_schemas.FileInfo]:
     try:
         return sorted(
@@ -73,7 +75,7 @@ def upload_file(
     f_type: models.UploadFileTypes,
     base_path: str,
     file: UploadFile,
-    filesystem: FileSystem = Depends(filesystem_dep),
+    filesystem: FileSystem = Depends(user_filesystem_dep),
 ) -> file_schemas.FileInfo:
     base_path = f"{f_type.value}/" + base_path
     file_path = os.path.join(base_path, file.filename or "unnamed")
@@ -91,7 +93,7 @@ def get_upload_presigned_url(
     f_type: models.UploadFileTypes,
     base_path: str,
     request: Request,
-    filesystem: FileSystem = Depends(filesystem_dep),
+    filesystem: FileSystem = Depends(user_filesystem_dep),
 ) -> file_schemas.FileHTTPRequest:
     base_path = f"{f_type.value}/" + base_path
     return filesystem.create_file_url(
@@ -107,7 +109,7 @@ def get_upload_presigned_url(
 def create_directory(
     f_type: models.UploadFileTypes,
     base_path: str,
-    filesystem: FileSystem = Depends(filesystem_dep),
+    filesystem: FileSystem = Depends(user_filesystem_dep),
 ) -> None:
     return filesystem.create_directory(f"{f_type.value}/{base_path}/")
 
@@ -120,7 +122,7 @@ def create_directory(
 def rename_file(
     file_path: str,
     file: file_schemas.FileUpdate,
-    filesystem: FileSystem = Depends(filesystem_dep),
+    filesystem: FileSystem = Depends(user_filesystem_dep),
 ) -> file_schemas.FileInfo:
     try:
         filesystem.rename(file_path, file.path)
@@ -141,6 +143,6 @@ def rename_file(
     description="Delete a file or directory",
 )
 def delete_file(
-    file_path: str, filesystem: FileSystem = Depends(filesystem_dep)
+    file_path: str, filesystem: FileSystem = Depends(user_filesystem_dep)
 ) -> None:
     filesystem.delete(file_path)

@@ -4,6 +4,8 @@ from io import BytesIO
 import requests
 from fastapi.testclient import TestClient
 
+from api.core.filesystem import FileSystem, LocalFilesystem
+
 ENDPOINT = "/files"
 
 
@@ -167,7 +169,7 @@ def test_download_file_happy(client: TestClient, data_files: dict[str, str]) -> 
 
 
 def test_get_url_file_happy(
-    env: str, client: TestClient, data_files: dict[str, str]
+    base_filesystem: FileSystem, client: TestClient, data_files: dict[str, str]
 ) -> None:
     data_file1_name, data_file1_contents = list(data_files.items())[0]
     response = client.get(f"{ENDPOINT}/{data_file1_name}/url")
@@ -175,13 +177,15 @@ def test_get_url_file_happy(
     request_params = response.json()
     if "authorization" in request_params["headers"]:
         del request_params["headers"]["authorization"]
-    request_client = client if env == "local" else requests
+    request_client = (
+        client if isinstance(base_filesystem, LocalFilesystem) else requests
+    )
     response = request_client.request(**request_params)
     assert response.status_code == 200, response.text
     assert response.content.decode("utf-8") == data_file1_contents
 
 
-def test_post_url_file_happy(env: str, client: TestClient) -> None:
+def test_post_url_file_happy(base_filesystem: FileSystem, client: TestClient) -> None:
     data_file1_name = "data/test/data_file1.txt"
     data_file1_contents = "data file1 contents"
     response = client.post(f"{ENDPOINT}/{os.path.dirname(data_file1_name)}//url")
@@ -196,7 +200,9 @@ def test_post_url_file_happy(env: str, client: TestClient) -> None:
             "text/plain",
         )
     }
-    request_client = client if env == "local" else requests
+    request_client = (
+        client if isinstance(base_filesystem, LocalFilesystem) else requests
+    )
     request_client.request(**request_params, files=files)
     response = client.get(
         f"{ENDPOINT}//", params={"recursive": True, "show_dirs": False}
