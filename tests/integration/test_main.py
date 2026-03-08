@@ -95,10 +95,14 @@ class TestCronBackupDatabase:
             s3_client=s3_testing_bucket.s3_client,
             s3_bucket=s3_testing_bucket.bucket_name,
         )
+
+        async def _override_new_db() -> Database:
+            return new_db
+
         monkeypatch.setitem(
             app.dependency_overrides,  # type: ignore
             db_dep,
-            lambda: new_db,
+            _override_new_db,
         )
         with client:
             assert len(client.get("/jobs").json()) == 2
