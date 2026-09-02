@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "api"
-version = "0.2.0"
+version = "0.3.0"
 description = "User-facing API of DECODE OpenCloud."
 authors = ["Arthur Jaques <arthur.jaques@hispeed.ch>"]
 readme = "README.md"
