@@ -68,7 +68,7 @@ class SqliteDatabase(Database):
     ):
         if not db_url.startswith("sqlite:///"):
             raise ValueError(f"SQLiteRDSJobQueue requires SQLite DB URL, got: {db_url}")
-        if not ((s3_client is None) == (s3_bucket is None)):
+        if not (bool(s3_client) == bool(s3_bucket)):
             raise ValueError(
                 "Both s3_client and s3_bucket must be provided for S3 backup/restore, or both must be None."
             )
